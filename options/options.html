@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logic — Configuracion</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">P</div>
+      <h1>Logic</h1>
+      <p class="subtitle">Configuracion</p>
+    </header>
+
+    <section>
+      <h2>API Key de Anthropic</h2>
+      <p class="description">Tu API key se almacena localmente y solo se envia a los servidores de Anthropic. Nunca sale de tu dispositivo a ningun otro lugar.</p>
+      <div class="input-group">
+        <input type="password" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off">
+        <button id="toggleVisibility" title="Mostrar/ocultar">
+          <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/>
+            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </button>
+      </div>
+      <div id="keyStatus" class="status"></div>
+    </section>
+
+    <section>
+      <h2>Modelo</h2>
+      <p class="description">Selecciona el modelo de Claude a usar. Sonnet es rapido y economico. Opus es mas profundo pero mas caro.</p>
+      <select id="modelSelect">
+        <option value="claude-opus-4-20250514">Claude Opus (recomendado)</option>
+        <option value="claude-sonnet-4-20250514">Claude Sonnet (rapido, economico)</option>
+      </select>
+    </section>
+
+    <section>
+      <h2>Red Colectiva</h2>
+      <p class="description">Comparte las relaciones entre niveles que descubras con otros usuarios de Logic. Solo se comparte la combinacion de niveles y una breve descripcion. Tu identidad es anonima (UUID aleatorio).</p>
+      <div class="toggle-row">
+        <label for="collectiveToggle">Participar en la red colectiva</label>
+        <input type="checkbox" id="collectiveToggle">
+      </div>
+    </section>
+
+    <div class="actions">
+      <button id="saveBtn" class="primary">Guardar</button>
+    </div>
+
+    <footer>
+      <p>Obtén tu API key en <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a></p>
+    </footer>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

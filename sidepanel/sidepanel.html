@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logic</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="header-left">
+        <div class="logo">P</div>
+        <h1>Logic</h1>
+      </div>
+      <div class="header-right">
+        <button id="collectiveBtn" title="Red colectiva">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="4" r="2" stroke="currentColor" stroke-width="1.5"/>
+            <circle cx="4" cy="12" r="2" stroke="currentColor" stroke-width="1.5"/>
+            <circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M8 6v2M6 10l-1 1M10 10l1 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button id="insightsBtn" title="Insights del sistema">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M8 1v3M8 12v3M1 8h3M12 8h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+        </button>
+        <button id="clearBtn" title="Nueva conversacion">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M2 2h12M6 2v-1a1 1 0 011-1h2a1 1 0 011 1v1M3 4v9a2 2 0 002 2h6a2 2 0 002-2V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button id="settingsBtn" title="Configuracion">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div id="noKeyMessage" class="no-key-message" style="display: none;">
+      <p>Configura tu API key de Anthropic para comenzar.</p>
+      <button id="openSettingsBtn">Abrir configuracion</button>
+    </div>
+
+    <div id="collectivePanel" class="collective-panel" style="display: none;">
+      <div class="insights-header">
+        <h2>Red Colectiva</h2>
+        <div class="insights-header-actions">
+          <button id="closeCollectiveBtn" class="close-btn">&times;</button>
+        </div>
+      </div>
+      <div id="collectiveContent" class="insights-list"></div>
+    </div>
+
+    <div id="insightsPanel" class="insights-panel" style="display: none;">
+      <div class="insights-header">
+        <h2>Insights del Sistema</h2>
+        <div class="insights-header-actions">
+          <button id="exportInsightsBtn" class="export-btn" title="Exportar insights">Exportar</button>
+          <button id="closeInsightsBtn" class="close-btn">&times;</button>
+        </div>
+      </div>
+      <div id="insightsList" class="insights-list">
+        <p class="empty-insights">No hay insights acumulados aun.</p>
+      </div>
+    </div>
+
+    <div id="chatContainer" class="chat-container">
+      <div id="messages" class="messages"></div>
+    </div>
+
+    <div id="inputArea" class="input-area">
+      <div class="input-actions">
+        <button id="analyzePageBtn" class="analyze-btn" title="Analizar pagina actual">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M5 6h6M5 8h6M5 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          Analizar pagina
+        </button>
+      </div>
+      <div class="input-row">
+        <textarea id="userInput" placeholder="Hazte una pregunta..." rows="1"></textarea>
+        <button id="sendBtn" title="Enviar">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M2 8l12-6-4 6 4 6z" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>
