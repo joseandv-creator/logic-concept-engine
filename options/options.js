@@ -1,21 +1,101 @@
+const providerSelect = document.getElementById('providerSelect');
 const apiKeyInput = document.getElementById('apiKeyInput');
+const apiKeyLabel = document.getElementById('apiKeyLabel');
 const modelSelect = document.getElementById('modelSelect');
 const saveBtn = document.getElementById('saveBtn');
 const toggleVisibility = document.getElementById('toggleVisibility');
 const keyStatus = document.getElementById('keyStatus');
 const collectiveToggle = document.getElementById('collectiveToggle');
+const consoleLink = document.getElementById('consoleLink');
 
-// Load saved settings
-async function loadSettings() {
-  const { apiKey, model, collectiveEnabled } = await chrome.storage.local.get(['apiKey', 'model', 'collectiveEnabled']);
-  if (apiKey) {
-    apiKeyInput.value = apiKey;
+const PROVIDER_MODELS = {
+  anthropic: [
+    { id: 'claude-opus-4-20250514', name: 'Claude Opus (recomendado)' },
+    { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet (rapido, economico)' }
+  ],
+  openai: [
+    { id: 'gpt-4o', name: 'GPT-4o' },
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini (economico)' }
+  ]
+};
+
+const PROVIDER_UI = {
+  anthropic: {
+    label: 'API Key de Anthropic',
+    placeholder: 'sk-ant-...',
+    console: 'Obtén tu API key en <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>'
+  },
+  openai: {
+    label: 'API Key de OpenAI',
+    placeholder: 'sk-...',
+    console: 'Obtén tu API key en <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a>'
   }
-  if (model) {
-    modelSelect.value = model;
-  }
-  collectiveToggle.checked = !!collectiveEnabled;
+};
+
+let currentProviderKeys = {};
+
+function populateModels(providerName, selectedModel) {
+  modelSelect.innerHTML = '';
+  const models = PROVIDER_MODELS[providerName] || [];
+  models.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.name;
+    modelSelect.appendChild(opt);
+  });
+  if (selectedModel) modelSelect.value = selectedModel;
 }
+
+function updateProviderUI(providerName) {
+  const ui = PROVIDER_UI[providerName] || PROVIDER_UI.anthropic;
+  apiKeyLabel.textContent = ui.label;
+  apiKeyInput.placeholder = ui.placeholder;
+  consoleLink.innerHTML = ui.console;
+}
+
+async function loadSettings() {
+  const stored = await chrome.storage.local.get([
+    'activeProvider', 'providers', 'collectiveEnabled',
+    'apiKey', 'model' // legacy fields for migration
+  ]);
+
+  let activeProvider = stored.activeProvider || 'anthropic';
+  let providers = stored.providers || {};
+
+  // Migration: old single-key format → new multi-provider format
+  if (stored.apiKey && !stored.providers) {
+    providers = {
+      anthropic: { key: stored.apiKey, model: stored.model || 'claude-opus-4-20250514' }
+    };
+    await chrome.storage.local.set({ activeProvider: 'anthropic', providers });
+  }
+
+  currentProviderKeys = {};
+  for (const [name, config] of Object.entries(providers)) {
+    currentProviderKeys[name] = config.key || '';
+  }
+
+  providerSelect.value = activeProvider;
+  updateProviderUI(activeProvider);
+
+  const config = providers[activeProvider] || {};
+  apiKeyInput.value = config.key || '';
+  populateModels(activeProvider, config.model);
+  collectiveToggle.checked = !!stored.collectiveEnabled;
+}
+
+// Provider change: save current key, load new provider's key
+providerSelect.addEventListener('change', () => {
+  const prev = Object.keys(PROVIDER_UI).find(k => k !== providerSelect.value) || 'anthropic';
+  currentProviderKeys[prev] = apiKeyInput.value.trim();
+
+  const next = providerSelect.value;
+  updateProviderUI(next);
+  apiKeyInput.value = currentProviderKeys[next] || '';
+  populateModels(next);
+  keyStatus.textContent = '';
+  keyStatus.className = 'status';
+});
 
 // Toggle password visibility
 toggleVisibility.addEventListener('click', () => {
@@ -25,6 +105,7 @@ toggleVisibility.addEventListener('click', () => {
 
 // Save
 saveBtn.addEventListener('click', async () => {
+  const activeProvider = providerSelect.value;
   const apiKey = apiKeyInput.value.trim();
   const model = modelSelect.value;
 
@@ -38,14 +119,34 @@ saveBtn.addEventListener('click', async () => {
 
   const result = await chrome.runtime.sendMessage({
     type: 'validateKey',
-    apiKey: apiKey
+    apiKey: apiKey,
+    provider: activeProvider
   });
 
   if (result.valid) {
+    // Save current key in memory
+    currentProviderKeys[activeProvider] = apiKey;
+
+    // Build providers object
+    const providers = {};
+    for (const [name, key] of Object.entries(currentProviderKeys)) {
+      if (key) {
+        providers[name] = { key };
+      }
+    }
+    // Set model for active provider
+    if (providers[activeProvider]) {
+      providers[activeProvider].model = model;
+    }
+
     const collectiveEnabled = collectiveToggle.checked;
     const supabaseUrl = 'https://mvropqfconacrexevcsn.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12cm9wcWZjb25hY3JleGV2Y3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyODQzNjQsImV4cCI6MjA4ODg2MDM2NH0.nNsTsNDgK2GNs1LTtL7KcixHXoFNmmb2fApzyBf5Tv4';
-    await chrome.storage.local.set({ apiKey, model, collectiveEnabled, supabaseUrl, supabaseKey });
+
+    await chrome.storage.local.set({
+      activeProvider, providers, collectiveEnabled,
+      supabaseUrl, supabaseKey
+    });
     showStatus('Guardado correctamente', 'success');
   } else {
     showStatus(result.error || 'API key invalida', 'error');

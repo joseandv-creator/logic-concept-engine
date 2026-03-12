@@ -15,8 +15,17 @@
     </header>
 
     <section>
-      <h2>API Key de Anthropic</h2>
-      <p class="description">Tu API key se almacena localmente y solo se envia a los servidores de Anthropic. Nunca sale de tu dispositivo a ningun otro lugar.</p>
+      <h2>Proveedor</h2>
+      <p class="description">Selecciona el proveedor de IA. Logic funciona con cualquiera — tu eliges segun costo y preferencia.</p>
+      <select id="providerSelect">
+        <option value="anthropic">Anthropic (Claude)</option>
+        <option value="openai">OpenAI (GPT)</option>
+      </select>
+    </section>
+
+    <section>
+      <h2 id="apiKeyLabel">API Key de Anthropic</h2>
+      <p class="description">Tu API key se almacena localmente y solo se envia a los servidores del proveedor. Nunca sale de tu dispositivo a ningun otro lugar.</p>
       <div class="input-group">
         <input type="password" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off">
         <button id="toggleVisibility" title="Mostrar/ocultar">
@@ -31,11 +40,8 @@
 
     <section>
       <h2>Modelo</h2>
-      <p class="description">Selecciona el modelo de Claude a usar. Sonnet es rapido y economico. Opus es mas profundo pero mas caro.</p>
-      <select id="modelSelect">
-        <option value="claude-opus-4-20250514">Claude Opus (recomendado)</option>
-        <option value="claude-sonnet-4-20250514">Claude Sonnet (rapido, economico)</option>
-      </select>
+      <p class="description">Selecciona el modelo a usar. Los modelos mas potentes son mas caros pero producen mejores resultados.</p>
+      <select id="modelSelect"></select>
     </section>
 
     <section>
@@ -52,7 +58,7 @@
     </div>
 
     <footer>
-      <p>Obtén tu API key en <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a></p>
+      <p id="consoleLink">Obtén tu API key en <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a></p>
     </footer>
   </div>
 

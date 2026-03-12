@@ -2,6 +2,8 @@ importScripts('system-prompt.js');
 importScripts('lib/validation.js');
 importScripts('lib/supabase.js');
 importScripts('lib/collective.js');
+importScripts('lib/providers.js');
+importScripts('lib/ranking.js');
 
 chrome.action.onClicked.addListener((tab) => {
   chrome.sidePanel.open({ tabId: tab.id });
@@ -18,6 +20,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     checkForUpdates();
     downloadSnapshot().then(() => computeSuggestedGaps());
     checkForDeprecated();
+    cacheCollectiveFeedback();
   }
 });
 
@@ -31,7 +34,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   if (message.type === 'validateKey') {
-    validateApiKey(message.apiKey).then(sendResponse);
+    validateApiKey(message.apiKey, message.provider).then(sendResponse);
     return true;
   }
   if (message.type === 'saveInsight') {
@@ -138,23 +141,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-async function getApiKey() {
-  const result = await chrome.storage.local.get(['apiKey']);
-  return result.apiKey || null;
-}
-
-async function getModel() {
-  const result = await chrome.storage.local.get(['model']);
-  return result.model || 'claude-opus-4-20250514';
-}
-
 async function handleChat(messages, modelOverride) {
-  const apiKey = await getApiKey();
-  if (!apiKey) {
-    return { error: 'NO_API_KEY' };
-  }
-
-  const model = modelOverride || await getModel();
+  const { provider, providerConfig, activeProvider } = await getActiveProvider();
+  const model = modelOverride || providerConfig.model ||
+    (activeProvider === 'anthropic' ? 'claude-opus-4-20250514' : 'gpt-4o');
 
   // Build system prompt with corrections
   let systemPrompt = SYSTEM_PROMPT;
@@ -164,14 +154,17 @@ async function handleChat(messages, modelOverride) {
     systemPrompt += `\n\n---\n\n## CORRECCIONES DEL OPERADOR\n\nEl operador (S1) ha registrado las siguientes correcciones a partir de errores previos. Integralas en tu razonamiento — son territorio verificado:\n\n${correctionLines}`;
   }
 
-  // Inject collective knowledge — structured by category, filtered for deprecated
+  // Inject collective knowledge — ranked by quality, capped at MAX_INJECTED_UPDATES
   const { integratedUpdates = [], deprecatedUpdates = [] } = await chrome.storage.local.get([
     'integratedUpdates', 'deprecatedUpdates'
   ]);
   const activeUpdates = integratedUpdates.filter(u => !deprecatedUpdates.includes(u.id));
   if (activeUpdates.length > 0) {
+    const feedbackMap = await buildFeedbackMap();
+    const { injected, prunedCount } = rankAndFilterUpdates(activeUpdates, feedbackMap);
+
     const grouped = {};
-    activeUpdates.forEach(u => {
+    injected.forEach(u => {
       const firstLevel = u.level_combo.split('+')[0];
       const category = firstLevel.replace(/\d+/g, '');
       if (!grouped[category]) grouped[category] = [];
@@ -192,41 +185,50 @@ async function handleChat(messages, modelOverride) {
       });
     });
 
+    if (prunedCount > 0) {
+      updateBlock += `\n(${prunedCount} relaciones adicionales no incluidas por limite de contexto)\n`;
+    }
+
     systemPrompt += `\n\n---\n\n## CONOCIMIENTO COLECTIVO VERIFICADO\n\nLas siguientes relaciones han sido descubiertas independientemente por multiples usuarios y verificadas por S1:\n${updateBlock}`;
   }
 
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: model,
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: messages
-      })
-    });
+  return provider.chat(messages, systemPrompt, model);
+}
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      if (response.status === 401) {
-        return { error: 'INVALID_API_KEY' };
-      }
-      return { error: 'API_ERROR', details: errorData.error?.message || response.statusText };
+async function buildFeedbackMap() {
+  const { feedbackGiven = {}, collectiveFeedbackCache = {} } =
+    await chrome.storage.local.get(['feedbackGiven', 'collectiveFeedbackCache']);
+  const merged = {};
+  // Local feedback
+  for (const [updateId, feedback] of Object.entries(feedbackGiven)) {
+    merged[updateId] = { useful: feedback.useful ? 1 : 0, total: 1 };
+  }
+  // Collective feedback
+  for (const [updateId, stats] of Object.entries(collectiveFeedbackCache)) {
+    if (merged[updateId]) {
+      merged[updateId].useful += (stats.useful || 0);
+      merged[updateId].total += (stats.total || 0);
+    } else {
+      merged[updateId] = { useful: stats.useful || 0, total: stats.total || 0 };
     }
+  }
+  return merged;
+}
 
-    const data = await response.json();
-    return {
-      content: data.content[0].text,
-      usage: data.usage
-    };
+async function cacheCollectiveFeedback() {
+  try {
+    const client = await getSupabaseClient();
+    if (!client) return;
+    const summary = await client.getFeedbackSummary();
+    if (summary && Array.isArray(summary)) {
+      const cache = {};
+      summary.forEach(s => {
+        cache[s.update_id] = { useful: s.useful_count, total: s.total_count };
+      });
+      await chrome.storage.local.set({ collectiveFeedbackCache: cache });
+    }
   } catch (err) {
-    return { error: 'NETWORK_ERROR', details: err.message };
+    console.warn('Failed to cache collective feedback:', err.message);
   }
 }
 
@@ -348,31 +350,8 @@ async function exportInsightsToFile() {
   }
 }
 
-async function validateApiKey(apiKey) {
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 10,
-        messages: [{ role: 'user', content: 'Hi' }]
-      })
-    });
-
-    if (response.ok) {
-      return { valid: true };
-    }
-    if (response.status === 401) {
-      return { valid: false, error: 'API key invalida' };
-    }
-    return { valid: false, error: `Error: ${response.statusText}` };
-  } catch (err) {
-    return { valid: false, error: err.message };
-  }
+async function validateApiKey(apiKey, providerName) {
+  const name = providerName || 'anthropic';
+  const provider = createProvider(name, { key: apiKey });
+  return provider.validateKey(apiKey);
 }
