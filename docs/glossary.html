@@ -351,8 +351,8 @@
       { key: 'empirical',   name: 'Empirical Fact',  desc: 'Verifiable against territory independently of who states it', cRange: 'C > 0.7',           color: 'var(--success)' },
       { key: 'inference',   name: 'Inference',        desc: 'Derived from empirical facts by a single logical step',       cRange: 'C 0.5 – 0.7',       color: '#3b82f6' },
       { key: 'deduction',   name: 'Deduction',        desc: 'Chain of reasoning — multiple steps from territory',          cRange: 'C 0.3 – 0.5',       color: '#f59e0b' },
-      { key: 'conjecture',  name: 'Conjecture',       desc: 'Hypothesis with convergence but insufficient C',              cRange: 'C < 0.3',           color: '#ef4444' },
-      { key: 'refuted',     name: 'Refuted',          desc: 'Once convergent, later contradicted by territory',            cRange: 'C = 0',             color: '#71717a' }
+      { key: 'conjecture',  name: 'Conjecture',       desc: 'Hypothesis with high convergence but insufficient C — shown only with 5+ independent discoverers', cRange: 'C < 0.3', color: '#ef4444' },
+      { key: 'refuted',     name: 'Refuted',          desc: 'Once convergent, later contradicted by territory — kept visible so no one rediscovers it as new', cRange: 'C = 0', color: '#71717a' }
     ];
 
     function escapeHtml(text) {
@@ -415,6 +415,8 @@
 
       relations.forEach(entry => {
         const cat = classifyEntry(entry, refutedIds);
+        // Conjectures only shown with high convergence (5+)
+        if (cat === 'conjecture' && (entry.convergence_count || 0) < 5) return;
         groups[cat].push(entry);
       });
 
