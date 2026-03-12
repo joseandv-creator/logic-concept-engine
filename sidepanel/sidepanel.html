@@ -73,9 +73,23 @@
     <div id="chatContainer" class="chat-container">
       <div id="welcomeState" class="welcome-state">
         <div class="welcome-icon">P</div>
-        <p class="welcome-title">Hazte una pregunta.</p>
-        <p class="welcome-subtitle">Logic te ayudara a descubrir verdades que amplien tu vision.</p>
-        <div class="welcome-suggestions">
+        <p class="welcome-title" id="welcomeTitle">Hazte una pregunta.</p>
+        <p class="welcome-subtitle" id="welcomeSubtitle">Logic te ayudara a descubrir verdades que amplien tu vision.</p>
+        <div id="welcomeStats" class="welcome-stats" style="display:none;">
+          <div class="welcome-stat">
+            <span class="welcome-stat-value" id="statInsights">0</span>
+            <span class="welcome-stat-label">insights</span>
+          </div>
+          <div class="welcome-stat">
+            <span class="welcome-stat-value" id="statLevels">0</span>
+            <span class="welcome-stat-label">niveles</span>
+          </div>
+          <div class="welcome-stat">
+            <span class="welcome-stat-value" id="statFrontiers">0</span>
+            <span class="welcome-stat-label">fronteras</span>
+          </div>
+        </div>
+        <div id="welcomeSuggestions" class="welcome-suggestions">
           <button class="suggestion-chip">Que quiero realmente?</button>
           <button class="suggestion-chip">Analiza esta pagina</button>
           <button class="suggestion-chip">Donde esta mi frontera?</button>

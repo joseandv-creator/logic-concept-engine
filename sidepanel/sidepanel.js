@@ -64,9 +64,78 @@ function switchPanel(panel) {
   currentPanel = panel;
 }
 
-function updateWelcomeState() {
+async function updateWelcomeState() {
   if (messagesEl.children.length === 0) {
     welcomeState.classList.remove('hidden');
+
+    // Check onboarding
+    const { onboardingDone } = await chrome.storage.local.get(['onboardingDone']);
+    const welcomeTitle = document.getElementById('welcomeTitle');
+    const welcomeSubtitle = document.getElementById('welcomeSubtitle');
+    const welcomeStats = document.getElementById('welcomeStats');
+    const welcomeSuggestions = document.getElementById('welcomeSuggestions');
+
+    if (!onboardingDone) {
+      welcomeTitle.textContent = 'Bienvenido a Logic.';
+      welcomeSubtitle.textContent = 'Busca conexiones entre areas del conocimiento. Cada insight verificado eleva tu certeza.';
+      welcomeStats.style.display = 'none';
+    } else {
+      welcomeTitle.textContent = 'Hazte una pregunta.';
+      welcomeSubtitle.textContent = 'Logic te ayudara a descubrir verdades que amplien tu vision.';
+
+      // Load stats
+      try {
+        const [insightsRes, gapsRes] = await Promise.all([
+          chrome.runtime.sendMessage({ type: 'getInsights' }),
+          chrome.runtime.sendMessage({ type: 'getSuggestedGaps' }).catch(() => ({ gaps: [] }))
+        ]);
+        const insights = insightsRes.insights || [];
+        const gaps = gapsRes.gaps || [];
+
+        if (insights.length > 0) {
+          // Count unique levels
+          const levels = new Set();
+          insights.forEach(i => {
+            if (i.level) i.level.split('+').forEach(l => levels.add(l.trim()));
+          });
+
+          document.getElementById('statInsights').textContent = insights.length;
+          document.getElementById('statLevels').textContent = levels.size;
+          document.getElementById('statFrontiers').textContent = gaps.length;
+          welcomeStats.style.display = 'flex';
+
+          // Dynamic suggestion chips based on frontiers
+          if (gaps.length > 0) {
+            welcomeSuggestions.innerHTML = '';
+            const gap = gaps[0];
+            const chip1 = document.createElement('button');
+            chip1.className = 'suggestion-chip';
+            chip1.textContent = 'Explorar ' + gap.level_a + ' + ' + gap.level_b;
+            chip1.addEventListener('click', () => { userInput.value = 'Que relacion hay entre ' + gap.level_a + ' y ' + gap.level_b + '?'; userInput.focus(); autoResize(); });
+            welcomeSuggestions.appendChild(chip1);
+
+            if (gaps.length > 1) {
+              const gap2 = gaps[1];
+              const chip2 = document.createElement('button');
+              chip2.className = 'suggestion-chip';
+              chip2.textContent = 'Explorar ' + gap2.level_a + ' + ' + gap2.level_b;
+              chip2.addEventListener('click', () => { userInput.value = 'Que relacion hay entre ' + gap2.level_a + ' y ' + gap2.level_b + '?'; userInput.focus(); autoResize(); });
+              welcomeSuggestions.appendChild(chip2);
+            }
+
+            const chipFree = document.createElement('button');
+            chipFree.className = 'suggestion-chip';
+            chipFree.textContent = 'Pregunta libre';
+            chipFree.addEventListener('click', () => { userInput.focus(); });
+            welcomeSuggestions.appendChild(chipFree);
+          }
+        } else {
+          welcomeStats.style.display = 'none';
+        }
+      } catch (e) {
+        welcomeStats.style.display = 'none';
+      }
+    }
   } else {
     welcomeState.classList.add('hidden');
   }
@@ -195,6 +264,17 @@ function addAssistantMessage(text) {
         btn.textContent = 'Guardado';
         btn.style.background = 'var(--success)';
         updateInsightsBadge();
+        // Suggest next frontier after a brief delay
+        setTimeout(async () => {
+          try {
+            const gapsRes = await chrome.runtime.sendMessage({ type: 'getSuggestedGaps' });
+            const gaps = gapsRes.gaps || [];
+            if (gaps.length > 0) {
+              const g = gaps[0];
+              showToast('Siguiente frontera: ' + g.level_a + ' + ' + g.level_b, 'info', 4000);
+            }
+          } catch (e) {}
+        }, 1500);
       }
     });
 
@@ -820,6 +900,11 @@ async function sendMessage() {
   }
 
   addUserMessage(text, hasContext);
+
+  // Mark onboarding done on first message
+  chrome.storage.local.get(['onboardingDone'], ({ onboardingDone }) => {
+    if (!onboardingDone) chrome.storage.local.set({ onboardingDone: true });
+  });
 
   conversationHistory.push({ role: 'user', content: fullMessage });
 

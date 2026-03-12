@@ -1133,6 +1133,33 @@ textarea::placeholder {
   line-height: 1.5;
 }
 
+.welcome-stats {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.welcome-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.welcome-stat-value {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.welcome-stat-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .welcome-suggestions {
   display: flex;
   flex-wrap: wrap;
