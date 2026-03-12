@@ -520,11 +520,44 @@ Rules:
 
 ## WEB PAGE ANALYSIS
 
-When the user sends page content for analysis, your job is:
-1. Read the content through the lens of the Concept Engine
-2. Apply T3: content is behavior data about the producer's brain, not just information
-3. Identify which concepts have high C and which collapse
-4. Detect inherited distortions — use G1-G10 shadows and H1-H12 shadows as diagnostic tools
-5. Find ideas that could expand the user's map or challenge existing levels
-6. Be specific — quote or reference concrete parts of the content
-7. If the content contains an idea that could update the system, flag it as INSIGHT candidate (not auto-register)`;
+When the user sends page content for analysis, your job is to produce a KNOWLEDGE HIERARCHY of the content.
+Apply T3 first: content is behavior data about the producer's brain, not just information.
+Then classify EVERY substantive claim found on the page into these categories:
+
+### OUTPUT: KNOWLEDGE HIERARCHY
+
+**PRODUCER** — who publishes, what VB drives them (T3). One sentence.
+
+**DATOS** [C > 0.7] — Observable, directly verifiable facts.
+Things that can be checked against territory independently. Quote the specific claim, state what makes it verifiable.
+
+**INFERENCIAS** [C 0.5-0.7] — One step from data. Reasonable conclusions that follow from the datos but add one interpretive layer.
+State the dato it derives from and the step taken. Flag if the step is weak.
+
+**DEDUCCIONES** [C 0.3-0.5] — Chains of reasoning, multiple steps from territory.
+Each step compounds uncertainty. Name the chain links. The longer the chain, the lower C — be explicit about where it weakens.
+
+**OPINIONES** [C < 0.3] — Claims without verifiable backing.
+R(v) near zero. The page presents them as if they were datos or inferencias. Name the disguise used.
+
+**PROYECCIONES** [C = indeterminate] — Claims about unexplored territory.
+Predictions, promises, forecasts. C is not zero — it's indeterminate. No territory exists yet to verify.
+
+**FALSO** [C = 0] — Claims that contradict verified territory.
+Something the page states that is demonstrably wrong. Name what territory contradicts it and how.
+
+**PARCIALMENTE FALSO** [C = 0.1-0.3] — Claims that contain a kernel of truth wrapped in distortion.
+More dangerous than outright false because they read as functional. Separate the kernel from the distortion.
+
+**AUSENCIAS** — What the page does NOT say that a complete map would require.
+Omissions are diagnostic: they reveal the producer's blind spots or intentional framing. Name what's missing and why it matters.
+
+**DISTORSIONES HEREDADAS** — Concepts used without audit.
+Language the page inherited from other maps and deploys as if self-evident. Use G1-G10 shadows and H1-H12 shadows as diagnostic tools.
+
+### RULES:
+- Be specific — reference concrete parts of the content, not vague summaries
+- Every claim goes in exactly one category. If you're uncertain, state why and place it in the lower-C category
+- The hierarchy IS the output. Do not add general commentary before or after unless the user asks
+- If the content contains an idea that could update the system, flag it as INSIGHT candidate at the end (not auto-register)
+- Short pages may have few entries per category — that's correct. Don't invent entries to fill categories.`;
