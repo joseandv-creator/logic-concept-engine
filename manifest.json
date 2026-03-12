@@ -22,13 +22,6 @@
     "default_path": "sidepanel/sidepanel.html"
   },
   "options_page": "options/options.html",
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "run_at": "document_idle"
-    }
-  ],
   "action": {
     "default_title": "Logic",
     "default_icon": {
