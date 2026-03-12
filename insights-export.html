@@ -2,14 +2,158 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Logic - Insights Data</title>
+  <title>Logic — Export / Import</title>
   <style>
-    body { background: #0a0a0b; color: #e4e4e7; font-family: monospace; font-size: 13px; padding: 20px; }
-    pre { white-space: pre-wrap; word-wrap: break-word; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0b;
+      color: #e4e4e7;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      padding: 40px 20px;
+    }
+    .container { max-width: 720px; margin: 0 auto; }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .logo {
+      width: 40px; height: 40px;
+      background: #a78bfa; color: #000;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 20px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+    header h1 { font-size: 18px; font-weight: 600; }
+    section {
+      background: #141416;
+      border: 1px solid #27272a;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    section h2 {
+      font-size: 14px; font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .stats {
+      display: flex; gap: 16px;
+      margin-bottom: 16px;
+    }
+    .stat {
+      flex: 1;
+      background: #1c1c1f;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+    }
+    .stat-value {
+      display: block;
+      font-size: 24px; font-weight: 700;
+      font-family: 'SF Mono', monospace;
+      color: #a78bfa;
+    }
+    .stat-label {
+      font-size: 10px; color: #71717a;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .btn-row { display: flex; gap: 10px; }
+    button {
+      background: #a78bfa; color: #000;
+      border: none; padding: 10px 20px;
+      border-radius: 8px; font-weight: 600;
+      cursor: pointer; font-size: 13px;
+    }
+    button:hover { background: #7c3aed; color: #fff; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-secondary {
+      background: #1c1c1f; color: #a1a1aa;
+      border: 1px solid #27272a;
+    }
+    .btn-secondary:hover { border-color: #a78bfa; color: #a78bfa; }
+    .btn-danger {
+      background: transparent; color: #ef4444;
+      border: 1px solid #ef4444;
+    }
+    .btn-danger:hover { background: rgba(239,68,68,0.1); }
+    .status {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #71717a;
+    }
+    .status.success { color: #22c55e; }
+    .status.error { color: #ef4444; }
+    pre {
+      background: #1c1c1f;
+      border: 1px solid #27272a;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 11px;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      margin-top: 12px;
+      display: none;
+    }
+    input[type="file"] { display: none; }
+    .snapshot-info {
+      font-size: 12px;
+      color: #a1a1aa;
+      margin-bottom: 12px;
+    }
   </style>
 </head>
 <body>
-  <pre id="data">Loading...</pre>
+  <div class="container">
+    <header>
+      <div class="logo">P</div>
+      <h1>Logic — Nodo Local</h1>
+    </header>
+
+    <section>
+      <h2>Tu Nodo</h2>
+      <div class="stats" id="nodeStats">
+        <div class="stat"><span class="stat-value" id="insightCount">-</span><span class="stat-label">Insights</span></div>
+        <div class="stat"><span class="stat-value" id="correctionCount">-</span><span class="stat-label">Correcciones</span></div>
+        <div class="stat"><span class="stat-value" id="integratedCount">-</span><span class="stat-label">Integrados</span></div>
+      </div>
+      <div id="snapshotInfo" class="snapshot-info"></div>
+    </section>
+
+    <section>
+      <h2>Exportar Sistema Completo</h2>
+      <p style="font-size:12px;color:#71717a;margin-bottom:12px;">
+        Descarga todo: insights, correcciones, updates integrados y snapshot colectivo.
+        Cualquier nodo con este archivo puede restaurar el sistema completo.
+      </p>
+      <div class="btn-row">
+        <button id="exportBtn">Exportar JSON</button>
+        <button id="snapshotBtn" class="btn-secondary">Actualizar Snapshot</button>
+        <button id="previewBtn" class="btn-secondary">Ver datos</button>
+      </div>
+      <div id="exportStatus" class="status"></div>
+      <pre id="dataPreview"></pre>
+    </section>
+
+    <section>
+      <h2>Importar Sistema</h2>
+      <p style="font-size:12px;color:#71717a;margin-bottom:12px;">
+        Restaura desde un archivo exportado. Reemplaza los datos locales actuales.
+      </p>
+      <div class="btn-row">
+        <button id="importBtn" class="btn-secondary">Seleccionar archivo JSON</button>
+      </div>
+      <input type="file" id="fileInput" accept=".json">
+      <div id="importStatus" class="status"></div>
+    </section>
+  </div>
+
   <script src="insights-export.js"></script>
 </body>
 </html>

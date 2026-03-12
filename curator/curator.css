@@ -515,3 +515,24 @@ section h2 {
   background: var(--accent-dim);
   color: #fff;
 }
+
+/* Seed / Persistence */
+.btn-row {
+  display: flex;
+  gap: 10px;
+}
+
+.import-btn {
+  background: transparent !important;
+  color: var(--accent) !important;
+  border: 1px solid var(--accent) !important;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.import-btn:hover {
+  background: rgba(167,139,250,0.1) !important;
+}

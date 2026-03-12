@@ -223,7 +223,7 @@ function scrollToBottom() {
   chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-// Insight extraction
+// Insight extraction with validation
 function extractInsight(text) {
   const insightRegex = /```INSIGHT\s*\n([\s\S]*?)```/;
   const match = text.match(insightRegex);
@@ -233,8 +233,13 @@ function extractInsight(text) {
   const cleanText = text.replace(insightRegex, '').trim();
 
   try {
-    const insight = JSON.parse(match[1].trim());
-    return { cleanText, insight };
+    const raw = JSON.parse(match[1].trim());
+    const validation = validateInsight(raw);
+    if (!validation.valid) {
+      console.warn('Insight rejected by validation:', validation.errors);
+      return { cleanText, insight: null };
+    }
+    return { cleanText, insight: validation.cleaned };
   } catch (e) {
     return { cleanText: text, insight: null };
   }

@@ -76,6 +76,19 @@
       <h2>Refutaciones</h2>
       <div id="refutationsList"></div>
     </section>
+
+    <section id="seedSection" style="display:none;">
+      <h2>Persistencia Distribuida</h2>
+      <p style="font-size:12px;color:#71717a;margin-bottom:12px;">
+        Exporta el estado completo de Supabase como JSON. Si el servidor muere, importa este archivo en un nuevo proyecto Supabase para restaurar todo.
+      </p>
+      <div class="btn-row">
+        <button id="exportSnapshotBtn">Exportar Snapshot</button>
+        <button id="importSnapshotBtn" class="import-btn">Importar a Supabase</button>
+      </div>
+      <input type="file" id="seedFileInput" accept=".json" style="display:none;">
+      <div id="seedStatus" class="status"></div>
+    </section>
   </div>
 
   <script src="curator.js"></script>

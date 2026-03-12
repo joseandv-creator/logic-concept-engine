@@ -1,4 +1,5 @@
 importScripts('system-prompt.js');
+importScripts('lib/validation.js');
 importScripts('lib/supabase.js');
 importScripts('lib/collective.js');
 
@@ -14,6 +15,7 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'checkCollectiveUpdates') {
     checkForUpdates();
+    downloadSnapshot();
   }
 });
 
@@ -94,6 +96,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   if (message.type === 'getGraphSummary') {
     getGraphSummary().then(sendResponse);
+    return true;
+  }
+  if (message.type === 'downloadSnapshot') {
+    downloadSnapshot().then(sendResponse);
+    return true;
+  }
+  if (message.type === 'getLocalSnapshot') {
+    getLocalSnapshot().then(snapshot => sendResponse({ snapshot }));
+    return true;
+  }
+  if (message.type === 'getFullExport') {
+    getFullExport().then(sendResponse);
+    return true;
+  }
+  if (message.type === 'importFullExport') {
+    importFullExport(message.data).then(sendResponse);
     return true;
   }
 });
@@ -216,10 +234,17 @@ async function getPageContent(tabId) {
 }
 
 async function saveInsight(insight) {
+  const validation = validateInsight(insight);
+  if (!validation.valid) {
+    console.warn('Insight rejected:', validation.errors);
+    return { success: false, error: validation.errors.join(', ') };
+  }
+
   const { insights = [] } = await chrome.storage.local.get(['insights']);
-  insight.date = new Date().toISOString();
-  insight.status = 'pending';
-  insights.push(insight);
+  const clean = validation.cleaned;
+  clean.date = new Date().toISOString();
+  clean.status = 'pending';
+  insights.push(clean);
   await chrome.storage.local.set({ insights });
   syncInsightsToFile();
   return { success: true, count: insights.length };

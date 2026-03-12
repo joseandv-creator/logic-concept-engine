@@ -131,6 +131,67 @@ class CuratorClient {
   async getRefutations() {
     return this._fetch('/refutations?order=created_at.desc') || [];
   }
+
+  async getFullSnapshot() {
+    const [
+      shared_relations,
+      convergent_relations,
+      system_updates,
+      relation_graph,
+      refutations
+    ] = await Promise.all([
+      this._fetch('/shared_relations?select=*&order=created_at.desc&limit=5000').catch(() => []),
+      this._fetch('/convergent_relations?select=*').catch(() => []),
+      this._fetch('/system_updates?select=*&order=version.desc').catch(() => []),
+      this._fetch('/relation_graph?select=*').catch(() => []),
+      this._fetch('/refutations?select=*&order=created_at.desc').catch(() => [])
+    ]);
+
+    return {
+      timestamp: new Date().toISOString(),
+      shared_relations: shared_relations || [],
+      convergent_relations: convergent_relations || [],
+      system_updates: system_updates || [],
+      relation_graph: relation_graph || [],
+      refutations: refutations || [],
+      node_count: new Set((shared_relations || []).map(r => r.user_hash)).size
+    };
+  }
+
+  async seedTable(tableName, rows) {
+    if (!rows || rows.length === 0) return 0;
+    // Insert in batches of 100
+    let inserted = 0;
+    for (let i = 0; i < rows.length; i += 100) {
+      const batch = rows.slice(i, i + 100);
+      await this._fetch(`/${tableName}`, {
+        method: 'POST',
+        headers: {
+          'Prefer': 'return=minimal,resolution=ignore-duplicates'
+        },
+        body: JSON.stringify(batch)
+      });
+      inserted += batch.length;
+    }
+    return inserted;
+  }
+
+  async seedFromSnapshot(snapshot) {
+    const results = {};
+    const tables = ['shared_relations', 'convergent_relations', 'system_updates', 'relation_graph', 'refutations'];
+    for (const table of tables) {
+      if (snapshot[table] && snapshot[table].length > 0) {
+        try {
+          results[table] = await this.seedTable(table, snapshot[table]);
+        } catch (err) {
+          results[table] = 'error: ' + err.message;
+        }
+      } else {
+        results[table] = 0;
+      }
+    }
+    return results;
+  }
 }
 
 // DOM
@@ -146,6 +207,7 @@ const graphSection = document.getElementById('graphSection');
 const gapsSection = document.getElementById('gapsSection');
 const contradictionsSection = document.getElementById('contradictionsSection');
 const refutationsSection = document.getElementById('refutationsSection');
+const seedSection = document.getElementById('seedSection');
 
 // Load saved config
 const savedUrl = localStorage.getItem('curator_url');
@@ -184,6 +246,7 @@ connectBtn.addEventListener('click', async () => {
     gapsSection.style.display = 'block';
     contradictionsSection.style.display = 'block';
     refutationsSection.style.display = 'block';
+    seedSection.style.display = 'block';
 
     loadApproved();
     loadRefutations();
@@ -475,6 +538,75 @@ async function loadRefutations() {
     list.innerHTML = '<p class="error">Error: ' + err.message + '</p>';
   }
 }
+
+// Seed: Export snapshot
+document.getElementById('exportSnapshotBtn').addEventListener('click', async () => {
+  if (!client) return;
+  const status = document.getElementById('seedStatus');
+  status.textContent = 'Descargando snapshot completo de Supabase...';
+  status.className = 'status';
+
+  try {
+    const snapshot = await client.getFullSnapshot();
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `logic-seed-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    const total = snapshot.shared_relations.length + snapshot.convergent_relations.length +
+                  snapshot.system_updates.length + snapshot.relation_graph.length + snapshot.refutations.length;
+    status.textContent = `Exportado: ${total} registros, ${snapshot.node_count} nodos. Este archivo puede re-sembrar cualquier Supabase.`;
+    status.className = 'status success';
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message;
+    status.className = 'status error';
+  }
+});
+
+// Seed: Import snapshot to Supabase
+document.getElementById('importSnapshotBtn').addEventListener('click', () => {
+  document.getElementById('seedFileInput').click();
+});
+
+document.getElementById('seedFileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file || !client) return;
+
+  const status = document.getElementById('seedStatus');
+  status.textContent = 'Leyendo archivo...';
+  status.className = 'status';
+
+  try {
+    const text = await file.text();
+    const snapshot = JSON.parse(text);
+
+    if (!snapshot.timestamp || !snapshot.shared_relations) {
+      status.textContent = 'Error: no es un snapshot valido (falta timestamp o shared_relations)';
+      status.className = 'status error';
+      return;
+    }
+
+    status.textContent = 'Sembrando datos en Supabase...';
+
+    const results = await client.seedFromSnapshot(snapshot);
+    const summary = Object.entries(results)
+      .map(([table, count]) => `${table}: ${count}`)
+      .join(', ');
+
+    status.textContent = `Semilla completada: ${summary}`;
+    status.className = 'status success';
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message;
+    status.className = 'status error';
+  }
+
+  e.target.value = '';
+});
 
 // Auto-connect if saved
 if (savedUrl && savedKey) {
