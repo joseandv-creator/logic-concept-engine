@@ -16,7 +16,13 @@
 
     <section>
       <h2>Proveedor</h2>
-      <p class="description">Selecciona el proveedor de IA. Logic funciona con cualquiera — tu eliges segun costo y preferencia.</p>
+      <div id="providerCard" class="provider-card">
+        <div class="provider-icon" id="providerIcon">A</div>
+        <div class="provider-card-info">
+          <span class="provider-name" id="providerName">Anthropic</span>
+          <span class="provider-status" id="providerStatus"><span class="status-dot"></span> Sin configurar</span>
+        </div>
+      </div>
       <select id="providerSelect">
         <option value="anthropic">Anthropic (Claude)</option>
         <option value="openai">OpenAI (GPT)</option>
@@ -49,7 +55,10 @@
       <p class="description">Comparte las relaciones entre niveles que descubras con otros usuarios de Logic. Solo se comparte la combinacion de niveles y una breve descripcion. Tu identidad es anonima (UUID aleatorio).</p>
       <div class="toggle-row">
         <label for="collectiveToggle">Participar en la red colectiva</label>
-        <input type="checkbox" id="collectiveToggle">
+        <label class="toggle-switch">
+          <input type="checkbox" id="collectiveToggle">
+          <span class="toggle-slider"></span>
+        </label>
       </div>
     </section>
 

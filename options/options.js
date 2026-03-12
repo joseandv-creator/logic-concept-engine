@@ -23,14 +23,25 @@ const PROVIDER_UI = {
   anthropic: {
     label: 'API Key de Anthropic',
     placeholder: 'sk-ant-...',
-    console: 'Obtén tu API key en <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>'
+    console: 'Obtén tu API key en <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>',
+    icon: 'A',
+    iconClass: 'anthropic',
+    name: 'Anthropic (Claude)'
   },
   openai: {
     label: 'API Key de OpenAI',
     placeholder: 'sk-...',
-    console: 'Obtén tu API key en <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a>'
+    console: 'Obtén tu API key en <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a>',
+    icon: 'O',
+    iconClass: 'openai',
+    name: 'OpenAI (GPT)'
   }
 };
+
+const providerCard = document.getElementById('providerCard');
+const providerIcon = document.getElementById('providerIcon');
+const providerName = document.getElementById('providerName');
+const providerStatus = document.getElementById('providerStatus');
 
 let currentProviderKeys = {};
 
@@ -46,11 +57,34 @@ function populateModels(providerName, selectedModel) {
   if (selectedModel) modelSelect.value = selectedModel;
 }
 
-function updateProviderUI(providerName) {
-  const ui = PROVIDER_UI[providerName] || PROVIDER_UI.anthropic;
+function updateProviderUI(name) {
+  const ui = PROVIDER_UI[name] || PROVIDER_UI.anthropic;
   apiKeyLabel.textContent = ui.label;
   apiKeyInput.placeholder = ui.placeholder;
   consoleLink.innerHTML = ui.console;
+  updateProviderCard(name);
+}
+
+function updateProviderCard(name) {
+  const ui = PROVIDER_UI[name] || PROVIDER_UI.anthropic;
+  providerIcon.textContent = ui.icon;
+  providerIcon.className = 'provider-icon ' + ui.iconClass;
+  providerName.textContent = ui.name;
+  updateConnectionStatus(name);
+}
+
+function updateConnectionStatus(name) {
+  const key = currentProviderKeys[name] || apiKeyInput.value.trim();
+  const dot = providerStatus.querySelector('.status-dot');
+  if (key) {
+    providerCard.classList.add('connected');
+    dot.classList.add('connected');
+    providerStatus.innerHTML = '<span class="status-dot connected"></span> Configurado';
+  } else {
+    providerCard.classList.remove('connected');
+    dot.classList.remove('connected');
+    providerStatus.innerHTML = '<span class="status-dot"></span> Sin configurar';
+  }
 }
 
 async function loadSettings() {
@@ -95,6 +129,7 @@ providerSelect.addEventListener('change', () => {
   populateModels(next);
   keyStatus.textContent = '';
   keyStatus.className = 'status';
+  updateConnectionStatus(next);
 });
 
 // Toggle password visibility
@@ -148,6 +183,7 @@ saveBtn.addEventListener('click', async () => {
       supabaseUrl, supabaseKey
     });
     showStatus('Guardado correctamente', 'success');
+    updateConnectionStatus(activeProvider);
   } else {
     showStatus(result.error || 'API key invalida', 'error');
   }

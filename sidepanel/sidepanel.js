@@ -16,19 +16,72 @@ const collectiveContent = document.getElementById('collectiveContent');
 const chatContainer = document.getElementById('chatContainer');
 const noKeyMessage = document.getElementById('noKeyMessage');
 const inputArea = document.getElementById('inputArea');
+const welcomeState = document.getElementById('welcomeState');
 
 let conversationHistory = [];
 let isLoading = false;
 let pageContext = null;
+let currentPanel = 'chat';
+
+// === CORE UI FUNCTIONS ===
+
+function showToast(message, type = 'info', duration = 2500) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-' + type;
+  toast.innerHTML = '<span class="toast-dot"></span>' + escapeHtml(message);
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'toastOut 0.25s ease-in forwards';
+    toast.addEventListener('animationend', () => toast.remove());
+  }, duration);
+}
+
+function switchPanel(panel) {
+  collectiveBtn.classList.remove('nav-active');
+  insightsBtn.classList.remove('nav-active');
+
+  chatContainer.style.display = 'none';
+  inputArea.style.display = 'none';
+  insightsPanel.style.display = 'none';
+  collectivePanel.style.display = 'none';
+
+  switch (panel) {
+    case 'chat':
+      chatContainer.style.display = 'block';
+      inputArea.style.display = 'block';
+      break;
+    case 'insights':
+      insightsPanel.style.display = 'block';
+      insightsBtn.classList.add('nav-active');
+      break;
+    case 'collective':
+      collectivePanel.style.display = 'block';
+      collectiveBtn.classList.add('nav-active');
+      break;
+  }
+
+  currentPanel = panel;
+}
+
+function updateWelcomeState() {
+  if (messagesEl.children.length === 0) {
+    welcomeState.classList.remove('hidden');
+  } else {
+    welcomeState.classList.add('hidden');
+  }
+}
 
 // Init
 async function init() {
-  const { apiKey } = await chrome.storage.local.get(['apiKey']);
-  if (!apiKey) {
+  const { apiKey, providers = {} } = await chrome.storage.local.get(['apiKey', 'providers']);
+  const hasKey = apiKey || Object.values(providers).some(p => p && p.key);
+  if (!hasKey) {
     showNoKeyState();
   } else {
     showChatState();
   }
+  updateWelcomeState();
   updateInsightsBadge();
   updateCollectiveBadge();
 }
@@ -41,31 +94,23 @@ function showNoKeyState() {
 
 function showChatState() {
   noKeyMessage.style.display = 'none';
-  chatContainer.style.display = 'block';
-  inputArea.style.display = 'block';
-  insightsPanel.style.display = 'none';
+  switchPanel('chat');
 }
 
-// Messages
+// === MESSAGES ===
+
 function addSystemMessage(text) {
   const div = document.createElement('div');
-  div.className = 'message';
-  div.innerHTML = `
-    <span class="message-role system">sistema</span>
-    <div class="message-content">${renderMarkdown(text)}</div>
-  `;
+  div.className = 'message message-system';
+  div.innerHTML = `<div class="message-content">${renderMarkdown(text)}</div>`;
   messagesEl.appendChild(div);
+  updateWelcomeState();
   scrollToBottom();
 }
 
 function addUserMessage(text, hasPageContext) {
   const div = document.createElement('div');
-  div.className = 'message';
-
-  const role = document.createElement('span');
-  role.className = 'message-role';
-  role.textContent = 'tu';
-  div.appendChild(role);
+  div.className = 'message message-user';
 
   if (hasPageContext) {
     const badge = document.createElement('div');
@@ -84,41 +129,45 @@ function addUserMessage(text, hasPageContext) {
   corrBtn.textContent = 'Guardar como correccion';
   corrBtn.addEventListener('click', async () => {
     corrBtn.disabled = true;
-    corrBtn.textContent = 'Guardando...';
     const response = await chrome.runtime.sendMessage({
       type: 'saveCorrection',
       correction: { text: text }
     });
     if (response.success) {
-      corrBtn.textContent = 'Correccion guardada';
+      corrBtn.textContent = 'Guardada';
       corrBtn.classList.add('saved');
+      showToast('Correccion guardada', 'success');
     }
   });
   div.appendChild(corrBtn);
 
   messagesEl.appendChild(div);
+  updateWelcomeState();
   scrollToBottom();
 }
 
 function addAssistantMessage(text) {
-  // Extract insight if present
   const { cleanText, insight } = extractInsight(text);
 
   const div = document.createElement('div');
-  div.className = 'message';
-
-  div.innerHTML = `
-    <span class="message-role system">logic</span>
-    <div class="message-content">${renderMarkdown(cleanText)}</div>
-  `;
+  div.className = 'message message-assistant';
+  div.innerHTML = `<div class="message-content">${renderMarkdown(cleanText)}</div>`;
 
   if (insight) {
     const notif = document.createElement('div');
     notif.className = 'insight-notification';
 
-    const label = document.createElement('div');
-    label.className = 'insight-label';
-    label.textContent = 'INSIGHT DETECTADO — ' + insight.level;
+    // Summary (always visible, compact)
+    const summary = document.createElement('div');
+    summary.className = 'insight-summary';
+    summary.innerHTML = `<span class="insight-dot"></span><span class="insight-summary-text">Insight: ${escapeHtml(insight.level)}</span><span class="insight-expand-arrow">\u25B8</span>`;
+    summary.addEventListener('click', () => {
+      notif.classList.toggle('expanded');
+    });
+
+    // Details (hidden by default)
+    const details = document.createElement('div');
+    details.className = 'insight-details';
 
     const desc = document.createElement('div');
     desc.className = 'insight-text';
@@ -126,19 +175,23 @@ function addAssistantMessage(text) {
 
     const cInfo = document.createElement('div');
     cInfo.className = 'insight-text';
-    cInfo.style.cssText = 'font-size:11px; color: var(--text-muted);';
-    cInfo.textContent = 'C: ' + insight.c_before + ' → ' + insight.c_after;
+    cInfo.style.cssText = 'font-size:11px; color: var(--text-muted); margin-top:4px;';
+    cInfo.textContent = 'C: ' + insight.c_before + ' \u2192 ' + insight.c_after;
+
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:6px;margin-top:8px;';
 
     const btn = document.createElement('button');
-    btn.textContent = 'Aceptar insight';
-    btn.addEventListener('click', async () => {
+    btn.textContent = 'Aceptar';
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
       btn.disabled = true;
-      btn.textContent = 'Guardando...';
       const response = await chrome.runtime.sendMessage({
         type: 'saveInsight',
         insight: insight
       });
       if (response.success) {
+        showToast('Insight guardado', 'success');
         btn.textContent = 'Guardado';
         btn.style.background = 'var(--success)';
         updateInsightsBadge();
@@ -146,49 +199,50 @@ function addAssistantMessage(text) {
     });
 
     const shareBtn = document.createElement('button');
-    shareBtn.textContent = 'Compartir relacion';
+    shareBtn.textContent = 'Compartir';
     shareBtn.className = 'share-btn';
-    shareBtn.addEventListener('click', async () => {
+    shareBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
       const statusRes = await chrome.runtime.sendMessage({ type: 'getCollectiveStatus' });
       if (!statusRes.enabled) {
-        shareBtn.textContent = 'Activa en Config';
-        shareBtn.style.color = 'var(--text-muted)';
+        showToast('Activa la red en Configuracion', 'info');
         return;
       }
       shareBtn.disabled = true;
-      shareBtn.textContent = 'Compartiendo...';
       const response = await chrome.runtime.sendMessage({
         type: 'shareRelation',
         insight: insight
       });
       if (response.success) {
+        showToast('Relacion compartida', 'success');
         shareBtn.textContent = 'Compartida';
         shareBtn.style.borderColor = 'var(--success)';
         shareBtn.style.color = 'var(--success)';
       } else if (response.error === 'ALREADY_SHARED') {
+        showToast('Ya compartida', 'info');
         shareBtn.textContent = 'Ya compartida';
+      } else if (response.error && response.error.includes('RATE_LIMITED')) {
+        showToast('Limite: 3 relaciones por dia', 'error');
+        shareBtn.disabled = false;
       } else {
-        shareBtn.textContent = 'Error';
-        setTimeout(() => {
-          shareBtn.textContent = 'Compartir relacion';
-          shareBtn.disabled = false;
-        }, 2000);
+        showToast('Error al compartir', 'error');
+        shareBtn.disabled = false;
       }
     });
 
-    const btnRow = document.createElement('div');
-    btnRow.style.cssText = 'display:flex;gap:6px;';
     btnRow.appendChild(btn);
     btnRow.appendChild(shareBtn);
+    details.appendChild(desc);
+    details.appendChild(cInfo);
+    details.appendChild(btnRow);
 
-    notif.appendChild(label);
-    notif.appendChild(desc);
-    notif.appendChild(cInfo);
-    notif.appendChild(btnRow);
+    notif.appendChild(summary);
+    notif.appendChild(details);
     div.appendChild(notif);
   }
 
   messagesEl.appendChild(div);
+  updateWelcomeState();
   scrollToBottom();
 }
 
@@ -197,20 +251,23 @@ function addErrorMessage(text) {
   div.className = 'error-message';
   div.textContent = text;
   messagesEl.appendChild(div);
+  updateWelcomeState();
   scrollToBottom();
 }
 
 function showLoading() {
   const div = document.createElement('div');
-  div.className = 'loading';
+  div.className = 'message message-assistant';
   div.id = 'loadingIndicator';
   div.innerHTML = `
-    <div class="loading-dots">
-      <span></span><span></span><span></span>
+    <div class="message-content typing-indicator">
+      <div class="loading-dots">
+        <span></span><span></span><span></span>
+      </div>
     </div>
-    <span>Procesando...</span>
   `;
   messagesEl.appendChild(div);
+  updateWelcomeState();
   scrollToBottom();
 }
 
@@ -223,7 +280,8 @@ function scrollToBottom() {
   chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-// Insight extraction with validation
+// === INSIGHT EXTRACTION ===
+
 function extractInsight(text) {
   const insightRegex = /```INSIGHT\s*\n([\s\S]*?)```/;
   const match = text.match(insightRegex);
@@ -245,9 +303,8 @@ function extractInsight(text) {
   }
 }
 
-// (accept insight is handled inline via addEventListener in addAssistantMessage)
+// === BADGES ===
 
-// Insights badge
 async function updateInsightsBadge() {
   const response = await chrome.runtime.sendMessage({ type: 'getInsights' });
   const existing = insightsBtn.querySelector('.insight-badge');
@@ -260,7 +317,21 @@ async function updateInsightsBadge() {
   }
 }
 
-// Insights panel
+async function updateCollectiveBadge() {
+  const response = await chrome.runtime.sendMessage({ type: 'getPendingUpdates' });
+  const existing = collectiveBtn.querySelector('.collective-badge');
+  if (existing) existing.remove();
+
+  if (response.updates && response.updates.length > 0) {
+    const badge = document.createElement('span');
+    badge.className = 'collective-badge';
+    badge.textContent = response.updates.length;
+    collectiveBtn.appendChild(badge);
+  }
+}
+
+// === INSIGHTS PANEL ===
+
 async function showInsightsPanel() {
   const [insightsRes, correctionsRes] = await Promise.all([
     chrome.runtime.sendMessage({ type: 'getInsights' }),
@@ -293,7 +364,7 @@ async function showInsightsPanel() {
       card.innerHTML = `
         <div class="insight-level">${escapeHtml(insight.level)}</div>
         <div class="insight-description">${escapeHtml(insight.description)}</div>
-        <div class="insight-c">C: ${escapeHtml(insight.c_before)} → ${escapeHtml(insight.c_after)}</div>
+        <div class="insight-c">C: ${escapeHtml(String(insight.c_before))} \u2192 ${escapeHtml(String(insight.c_after))}</div>
         <div class="insight-why">${escapeHtml(insight.why)}</div>
         <div class="insight-date">${dateStr}</div>
         <div class="insight-actions"></div>
@@ -359,250 +430,10 @@ async function showInsightsPanel() {
     });
   }
 
-  chatContainer.style.display = 'none';
-  inputArea.style.display = 'none';
-  insightsPanel.style.display = 'block';
+  switchPanel('insights');
 }
 
-// (delete insight is handled inline via addEventListener in showInsightsPanel)
-
-function hideInsightsPanel() {
-  insightsPanel.style.display = 'none';
-  chatContainer.style.display = 'block';
-  inputArea.style.display = 'block';
-}
-
-// Markdown rendering (basic)
-function renderMarkdown(text) {
-  let html = escapeHtml(text);
-
-  // Code blocks
-  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
-
-  // Inline code
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-  // Headers
-  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-
-  // Bold
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-
-  // Italic
-  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-
-  // Horizontal rules
-  html = html.replace(/^---$/gm, '<hr>');
-
-  // Lists
-  html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
-  html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
-
-  // Numbered lists
-  html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
-
-  // C scores highlighting
-  html = html.replace(/\bC\s*=\s*([\d.]+)/g, '<span class="c-score">C = $1</span>');
-  html = html.replace(/\bC\s*[<>≥≤]=?\s*([\d.]+)/g, (match) => `<span class="c-score">${match}</span>`);
-  html = html.replace(/\b[SOR]\(v\)\s*=\s*([\d.]+)/g, (match) => `<span class="c-score">${match}</span>`);
-
-  // Paragraphs
-  html = html.replace(/\n\n/g, '</p><p>');
-  html = '<p>' + html + '</p>';
-
-  // Clean up empty paragraphs
-  html = html.replace(/<p>\s*<\/p>/g, '');
-  html = html.replace(/<p>\s*(<h[123]>)/g, '$1');
-  html = html.replace(/(<\/h[123]>)\s*<\/p>/g, '$1');
-  html = html.replace(/<p>\s*(<hr>)\s*<\/p>/g, '$1');
-  html = html.replace(/<p>\s*(<ul>)/g, '$1');
-  html = html.replace(/(<\/ul>)\s*<\/p>/g, '$1');
-  html = html.replace(/<p>\s*(<pre>)/g, '$1');
-  html = html.replace(/(<\/pre>)\s*<\/p>/g, '$1');
-
-  return html;
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-// Send message
-async function sendMessage() {
-  const text = userInput.value.trim();
-  if (!text || isLoading) return;
-
-  isLoading = true;
-  sendBtn.disabled = true;
-  userInput.value = '';
-  autoResize();
-
-  let fullMessage = text;
-  const hasContext = !!pageContext;
-
-  if (pageContext) {
-    fullMessage = `[Contexto de la pagina web actual]\n${pageContext}\n\n[Pregunta del usuario]\n${text}`;
-    pageContext = null;
-    analyzePageBtn.classList.remove('active');
-  }
-
-  addUserMessage(text, hasContext);
-
-  conversationHistory.push({ role: 'user', content: fullMessage });
-
-  showLoading();
-
-  const response = await chrome.runtime.sendMessage({
-    type: 'chat',
-    messages: conversationHistory
-  });
-
-  hideLoading();
-
-  if (response.error) {
-    if (response.error === 'NO_API_KEY') {
-      addErrorMessage('No hay API key configurada. Abre la configuracion.');
-    } else if (response.error === 'INVALID_API_KEY') {
-      addErrorMessage('API key invalida. Verifica tu configuracion.');
-    } else {
-      addErrorMessage(`Error: ${response.details || response.error}`);
-    }
-    conversationHistory.pop();
-  } else {
-    conversationHistory.push({ role: 'assistant', content: response.content });
-    addAssistantMessage(response.content);
-  }
-
-  isLoading = false;
-  sendBtn.disabled = false;
-  userInput.focus();
-}
-
-// Analyze page
-async function analyzePage() {
-  if (pageContext) {
-    pageContext = null;
-    analyzePageBtn.classList.remove('active');
-    return;
-  }
-
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab || !tab.id) {
-    addErrorMessage('No se encontro una pestana activa.');
-    return;
-  }
-
-  try {
-    const response = await chrome.runtime.sendMessage({
-      type: 'getPageContent',
-      tabId: tab.id
-    });
-
-    if (response.error) {
-      addErrorMessage('No se pudo acceder a esta pagina. Navega a una pagina web normal e intenta de nuevo.');
-    } else if (response.content && response.content.trim().length > 0) {
-      pageContext = response.content;
-      analyzePageBtn.classList.add('active');
-    } else {
-      addErrorMessage('La pagina no tiene contenido extraible.');
-    }
-  } catch (err) {
-    addErrorMessage('No se puede acceder a esta pagina. Navega a una pagina web e intenta de nuevo.');
-  }
-}
-
-// Auto resize textarea
-function autoResize() {
-  userInput.style.height = 'auto';
-  userInput.style.height = Math.min(userInput.scrollHeight, 120) + 'px';
-}
-
-// Event listeners
-sendBtn.addEventListener('click', sendMessage);
-
-userInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
-});
-
-userInput.addEventListener('input', autoResize);
-
-clearBtn.addEventListener('click', () => {
-  conversationHistory = [];
-  messagesEl.innerHTML = '';
-  pageContext = null;
-  analyzePageBtn.classList.remove('active');
-});
-
-settingsBtn.addEventListener('click', () => {
-  chrome.runtime.openOptionsPage();
-});
-
-openSettingsBtn.addEventListener('click', () => {
-  chrome.runtime.openOptionsPage();
-});
-
-insightsBtn.addEventListener('click', () => {
-  if (insightsPanel.style.display === 'block') {
-    hideInsightsPanel();
-  } else {
-    showInsightsPanel();
-  }
-});
-
-closeInsightsBtn.addEventListener('click', hideInsightsPanel);
-
-const exportInsightsBtn = document.getElementById('exportInsightsBtn');
-exportInsightsBtn.addEventListener('click', async () => {
-  exportInsightsBtn.disabled = true;
-  exportInsightsBtn.textContent = 'Exportando...';
-  const response = await chrome.runtime.sendMessage({ type: 'exportInsights' });
-  if (response && response.success) {
-    exportInsightsBtn.textContent = 'Exportado';
-    setTimeout(() => {
-      exportInsightsBtn.textContent = 'Exportar';
-      exportInsightsBtn.disabled = false;
-    }, 2000);
-  } else {
-    exportInsightsBtn.textContent = 'Error';
-    setTimeout(() => {
-      exportInsightsBtn.textContent = 'Exportar';
-      exportInsightsBtn.disabled = false;
-    }, 2000);
-  }
-});
-
-// Listen for storage changes (API key added)
-chrome.storage.onChanged.addListener((changes) => {
-  if (changes.apiKey && changes.apiKey.newValue) {
-    showChatState();
-    if (messagesEl.children.length === 0) {
-      showChatState();
-    }
-  }
-});
-
-analyzePageBtn.addEventListener('click', analyzePage);
-
-// Collective panel
-async function updateCollectiveBadge() {
-  const response = await chrome.runtime.sendMessage({ type: 'getPendingUpdates' });
-  const existing = collectiveBtn.querySelector('.collective-badge');
-  if (existing) existing.remove();
-
-  if (response.updates && response.updates.length > 0) {
-    const badge = document.createElement('span');
-    badge.className = 'collective-badge';
-    badge.textContent = response.updates.length;
-    collectiveBtn.appendChild(badge);
-  }
-}
+// === COLLECTIVE PANEL ===
 
 async function showCollectivePanel() {
   const [statusRes, updatesRes] = await Promise.all([
@@ -669,9 +500,9 @@ async function showCollectivePanel() {
           });
         }
         await chrome.storage.local.set({ integratedUpdates });
-        bulkBtn.textContent = 'Todos integrados';
-        bulkBtn.style.background = 'var(--success)';
+        showToast('Todos integrados', 'success');
         updateCollectiveBadge();
+        showCollectivePanel();
       });
       collectiveContent.appendChild(bulkBtn);
     }
@@ -713,19 +544,18 @@ async function showCollectivePanel() {
         integrateBtn.disabled = true;
         integrateBtn.textContent = 'Integrando...';
 
-        // Save to integrated updates with integrated_at timestamp
         const { integratedUpdates = [] } = await chrome.storage.local.get(['integratedUpdates']);
         update.integrated_at = new Date().toISOString();
         integratedUpdates.push(update);
         await chrome.storage.local.set({ integratedUpdates });
 
-        // Acknowledge
         await chrome.runtime.sendMessage({
           type: 'acknowledgeUpdate',
           updateId: update.id,
           version: update.version
         });
 
+        showToast('Integrado', 'success');
         integrateBtn.textContent = 'Integrado';
         integrateBtn.style.background = 'var(--success)';
         updateCollectiveBadge();
@@ -793,9 +623,9 @@ async function showCollectivePanel() {
       meta.className = 'update-convergence';
       const refCount = refutationCounts[update.id] || 0;
       const descCount = (update.descriptions && update.descriptions.length > 0)
-        ? ' · ' + update.descriptions.length + ' perspectivas'
+        ? ' \u00B7 ' + update.descriptions.length + ' perspectivas'
         : '';
-      meta.textContent = update.convergence_count + ' convergencias · ' + refCount + ' refutaciones' + descCount;
+      meta.textContent = update.convergence_count + ' convergencias \u00B7 ' + refCount + ' refutaciones' + descCount;
 
       const desc = document.createElement('div');
       desc.className = 'update-description';
@@ -825,7 +655,8 @@ async function showCollectivePanel() {
           yesBtn.disabled = true;
           noBtn.disabled = true;
           await chrome.runtime.sendMessage({ type: 'submitFeedback', updateId: update.id, useful: true });
-          feedbackRow.innerHTML = '<span class="feedback-given">Gracias por el feedback</span>';
+          showToast('Gracias por el feedback', 'success');
+          feedbackRow.innerHTML = '<span class="feedback-given">Feedback enviado</span>';
         });
 
         const noBtn = document.createElement('button');
@@ -835,7 +666,8 @@ async function showCollectivePanel() {
           yesBtn.disabled = true;
           noBtn.disabled = true;
           await chrome.runtime.sendMessage({ type: 'submitFeedback', updateId: update.id, useful: false });
-          feedbackRow.innerHTML = '<span class="feedback-given">Gracias por el feedback</span>';
+          showToast('Gracias por el feedback', 'info');
+          feedbackRow.innerHTML = '<span class="feedback-given">Feedback enviado</span>';
         });
 
         feedbackRow.appendChild(yesBtn);
@@ -860,13 +692,15 @@ async function showCollectivePanel() {
           contextDescription: 'Refutado desde sidepanel por el operador'
         });
         if (res.error === 'ALREADY_REFUTED') {
+          showToast('Ya refutado', 'info');
           refuteBtn.textContent = 'Ya refutado';
           refuteBtn.className = 'refute-btn refuted';
         } else if (res.success) {
+          showToast('Refutacion enviada', 'success');
           refuteBtn.textContent = 'Refutado';
           refuteBtn.className = 'refute-btn refuted';
         } else {
-          refuteBtn.textContent = 'Error';
+          showToast('Error al refutar', 'error');
           refuteBtn.disabled = false;
         }
       });
@@ -875,7 +709,7 @@ async function showCollectivePanel() {
     });
   }
 
-  // Fronteras section (Mejora 4 — gap suggestions)
+  // Fronteras section (gap suggestions)
   try {
     const gapsRes = await chrome.runtime.sendMessage({ type: 'getSuggestedGaps' });
     const gaps = gapsRes.gaps || [];
@@ -894,34 +728,254 @@ async function showCollectivePanel() {
         const card = document.createElement('div');
         card.className = 'gap-suggestion';
         card.innerHTML = `
-          <div class="gap-levels">${g.level_a} + ${g.level_b}</div>
-          <div class="gap-prompt">Has explorado ${g.level_a} y ${g.level_b} por separado. Que relacion hay entre ellos?</div>
+          <div class="gap-levels">${escapeHtml(g.level_a)} + ${escapeHtml(g.level_b)}</div>
+          <div class="gap-prompt">Has explorado ${escapeHtml(g.level_a)} y ${escapeHtml(g.level_b)} por separado. Que relacion hay entre ellos?</div>
         `;
         collectiveContent.appendChild(card);
       });
     }
   } catch (e) {}
 
-  chatContainer.style.display = 'none';
-  inputArea.style.display = 'none';
-  insightsPanel.style.display = 'none';
-  collectivePanel.style.display = 'block';
+  switchPanel('collective');
 }
 
-function hideCollectivePanel() {
-  collectivePanel.style.display = 'none';
-  chatContainer.style.display = 'block';
-  inputArea.style.display = 'block';
+// === MARKDOWN RENDERING ===
+
+function renderMarkdown(text) {
+  let html = escapeHtml(text);
+
+  // Code blocks
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Headers
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+  // Bold
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+  // Italic
+  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+  // Horizontal rules
+  html = html.replace(/^---$/gm, '<hr>');
+
+  // Lists
+  html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+
+  // Numbered lists
+  html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+
+  // C scores highlighting
+  html = html.replace(/\bC\s*=\s*([\d.]+)/g, '<span class="c-score">C = $1</span>');
+  html = html.replace(/\bC\s*[<>≥≤]=?\s*([\d.]+)/g, (match) => `<span class="c-score">${match}</span>`);
+  html = html.replace(/\b[SOR]\(v\)\s*=\s*([\d.]+)/g, (match) => `<span class="c-score">${match}</span>`);
+
+  // Paragraphs
+  html = html.replace(/\n\n/g, '</p><p>');
+  html = '<p>' + html + '</p>';
+
+  // Clean up empty paragraphs
+  html = html.replace(/<p>\s*<\/p>/g, '');
+  html = html.replace(/<p>\s*(<h[123]>)/g, '$1');
+  html = html.replace(/(<\/h[123]>)\s*<\/p>/g, '$1');
+  html = html.replace(/<p>\s*(<hr>)\s*<\/p>/g, '$1');
+  html = html.replace(/<p>\s*(<ul>)/g, '$1');
+  html = html.replace(/(<\/ul>)\s*<\/p>/g, '$1');
+  html = html.replace(/<p>\s*(<pre>)/g, '$1');
+  html = html.replace(/(<\/pre>)\s*<\/p>/g, '$1');
+
+  return html;
 }
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// === SEND MESSAGE ===
+
+async function sendMessage() {
+  const text = userInput.value.trim();
+  if (!text || isLoading) return;
+
+  isLoading = true;
+  sendBtn.disabled = true;
+  userInput.value = '';
+  autoResize();
+
+  let fullMessage = text;
+  const hasContext = !!pageContext;
+
+  if (pageContext) {
+    fullMessage = `[Contexto de la pagina web actual]\n${pageContext}\n\n[Pregunta del usuario]\n${text}`;
+    pageContext = null;
+    analyzePageBtn.classList.remove('active');
+  }
+
+  addUserMessage(text, hasContext);
+
+  conversationHistory.push({ role: 'user', content: fullMessage });
+
+  showLoading();
+
+  const response = await chrome.runtime.sendMessage({
+    type: 'chat',
+    messages: conversationHistory
+  });
+
+  hideLoading();
+
+  if (response.error) {
+    if (response.error === 'NO_API_KEY') {
+      addErrorMessage('No hay API key configurada. Abre la configuracion.');
+    } else if (response.error === 'INVALID_API_KEY') {
+      addErrorMessage('API key invalida. Verifica tu configuracion.');
+    } else {
+      addErrorMessage(`Error: ${response.details || response.error}`);
+    }
+    conversationHistory.pop();
+  } else {
+    conversationHistory.push({ role: 'assistant', content: response.content });
+    addAssistantMessage(response.content);
+  }
+
+  isLoading = false;
+  sendBtn.disabled = false;
+  userInput.focus();
+}
+
+// === ANALYZE PAGE ===
+
+async function analyzePage() {
+  if (pageContext) {
+    pageContext = null;
+    analyzePageBtn.classList.remove('active');
+    return;
+  }
+
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab || !tab.id) {
+    addErrorMessage('No se encontro una pestana activa.');
+    return;
+  }
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: 'getPageContent',
+      tabId: tab.id
+    });
+
+    if (response.error) {
+      addErrorMessage('No se pudo acceder a esta pagina. Navega a una pagina web normal e intenta de nuevo.');
+    } else if (response.content && response.content.trim().length > 0) {
+      pageContext = response.content;
+      analyzePageBtn.classList.add('active');
+    } else {
+      addErrorMessage('La pagina no tiene contenido extraible.');
+    }
+  } catch (err) {
+    addErrorMessage('No se puede acceder a esta pagina. Navega a una pagina web e intenta de nuevo.');
+  }
+}
+
+// === UTILITIES ===
+
+function autoResize() {
+  userInput.style.height = 'auto';
+  userInput.style.height = Math.min(userInput.scrollHeight, 120) + 'px';
+}
+
+// === EVENT LISTENERS ===
+
+sendBtn.addEventListener('click', sendMessage);
+
+userInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+userInput.addEventListener('input', autoResize);
+
+clearBtn.addEventListener('click', () => {
+  conversationHistory = [];
+  messagesEl.innerHTML = '';
+  pageContext = null;
+  analyzePageBtn.classList.remove('active');
+  updateWelcomeState();
+});
+
+settingsBtn.addEventListener('click', () => {
+  chrome.runtime.openOptionsPage();
+});
+
+openSettingsBtn.addEventListener('click', () => {
+  chrome.runtime.openOptionsPage();
+});
+
+insightsBtn.addEventListener('click', () => {
+  if (currentPanel === 'insights') {
+    switchPanel('chat');
+  } else {
+    showInsightsPanel();
+  }
+});
+
+closeInsightsBtn.addEventListener('click', () => switchPanel('chat'));
+
+const exportInsightsBtn = document.getElementById('exportInsightsBtn');
+exportInsightsBtn.addEventListener('click', async () => {
+  exportInsightsBtn.disabled = true;
+  exportInsightsBtn.textContent = 'Exportando...';
+  const response = await chrome.runtime.sendMessage({ type: 'exportInsights' });
+  if (response && response.success) {
+    showToast('Exportado', 'success');
+  } else {
+    showToast('Error al exportar', 'error');
+  }
+  exportInsightsBtn.textContent = 'Exportar';
+  exportInsightsBtn.disabled = false;
+});
+
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.apiKey || changes.providers) {
+    chrome.storage.local.get(['apiKey', 'providers'], ({ apiKey, providers = {} }) => {
+      const hasKey = apiKey || Object.values(providers).some(p => p && p.key);
+      if (hasKey) {
+        showChatState();
+        updateWelcomeState();
+      }
+    });
+  }
+});
+
+analyzePageBtn.addEventListener('click', analyzePage);
 
 collectiveBtn.addEventListener('click', () => {
-  if (collectivePanel.style.display === 'block') {
-    hideCollectivePanel();
+  if (currentPanel === 'collective') {
+    switchPanel('chat');
   } else {
     showCollectivePanel();
   }
 });
 
-closeCollectiveBtn.addEventListener('click', hideCollectivePanel);
+closeCollectiveBtn.addEventListener('click', () => switchPanel('chat'));
+
+// Suggestion chips
+document.querySelectorAll('.suggestion-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    userInput.value = chip.textContent;
+    userInput.focus();
+    autoResize();
+  });
+});
 
 init();

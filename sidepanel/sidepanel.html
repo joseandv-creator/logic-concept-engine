@@ -43,7 +43,7 @@
     </header>
 
     <div id="noKeyMessage" class="no-key-message" style="display: none;">
-      <p>Configura tu API key de Anthropic para comenzar.</p>
+      <p>Configura tu API key para comenzar.</p>
       <button id="openSettingsBtn">Abrir configuracion</button>
     </div>
 
@@ -71,6 +71,16 @@
     </div>
 
     <div id="chatContainer" class="chat-container">
+      <div id="welcomeState" class="welcome-state">
+        <div class="welcome-icon">P</div>
+        <p class="welcome-title">Hazte una pregunta.</p>
+        <p class="welcome-subtitle">Logic te ayudara a descubrir verdades que amplien tu vision.</p>
+        <div class="welcome-suggestions">
+          <button class="suggestion-chip">Que quiero realmente?</button>
+          <button class="suggestion-chip">Analiza esta pagina</button>
+          <button class="suggestion-chip">Donde esta mi frontera?</button>
+        </div>
+      </div>
       <div id="messages" class="messages"></div>
     </div>
 
@@ -93,6 +103,7 @@
         </button>
       </div>
     </div>
+    <div id="toastContainer" class="toast-container"></div>
   </div>
 
   <script src="../lib/validation.js"></script>
