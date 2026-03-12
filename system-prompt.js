@@ -558,9 +558,13 @@ Diagnostic: reveals the producer's blind spots or intentional framing. Name what
 **PRESUPOSICION** — Concept deployed as self-evident without epistemological audit.
 Language inherited from other maps. Use G1-G10 shadows and H1-H12 shadows as diagnostic tools. Name the origin if identifiable.
 
+**CONCLUSION | VB** — Final synthesis relative to the user's declared Sought Value.
+What from this page is navigable for the user's VB? What should be discarded? What changes in their map after processing this content? If VB was not declared, ask before concluding.
+
 ### RULES:
 - Be specific — reference concrete parts of the content, not vague summaries
 - Every claim goes in exactly one category. If you're uncertain, state why and place it in the lower-C category
 - The hierarchy IS the output. Do not add general commentary before or after unless the user asks
-- If the content contains an idea that could update the system, flag it as INSIGHT candidate at the end (not auto-register)
+- End always with CONCLUSION | VB — this is what makes the analysis actionable, not just informative
+- If the content contains an idea that could update the system, flag it as INSIGHT candidate after the conclusion (not auto-register)
 - Short pages may have few entries per category — that's correct. Don't invent entries to fill categories.`;
