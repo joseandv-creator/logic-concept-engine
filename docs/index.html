@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logic — Concept Engine Protocol</title>
+  <meta name="description" content="A reasoning system that expands your map. Chrome extension operating the Concept Engine protocol via Claude AI.">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0a0b;
+      --bg2: #141416;
+      --bg3: #1c1c1f;
+      --text: #e4e4e7;
+      --text2: #a1a1aa;
+      --text3: #71717a;
+      --accent: #a78bfa;
+      --accent-dim: #7c3aed;
+      --border: #27272a;
+      --success: #22c55e;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 80px 0 60px;
+    }
+
+    .logo {
+      width: 80px;
+      height: 80px;
+      background: var(--accent);
+      color: #000;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 42px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: 48px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    .subtitle {
+      font-size: 20px;
+      color: var(--text2);
+      max-width: 560px;
+      margin: 0 auto 40px;
+    }
+
+    .cta-row {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-dim);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: var(--bg3);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent);
+    }
+
+    /* Formula */
+    .formula-section {
+      text-align: center;
+      padding: 60px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .formula {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 24px;
+    }
+
+    .formula-desc {
+      color: var(--text2);
+      font-size: 16px;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    /* Features */
+    .features {
+      padding: 60px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .features h2 {
+      font-size: 32px;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+
+    .feature {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .feature h3 {
+      font-size: 16px;
+      margin-bottom: 8px;
+      color: var(--accent);
+    }
+
+    .feature p {
+      font-size: 14px;
+      color: var(--text2);
+    }
+
+    /* How it works */
+    .how {
+      padding: 60px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .how h2 {
+      font-size: 32px;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    .step {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .step-num {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--accent);
+    }
+
+    .step p {
+      font-size: 15px;
+      color: var(--text2);
+      padding-top: 4px;
+    }
+
+    /* Principles */
+    .principles {
+      padding: 60px 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .principles h2 {
+      font-size: 32px;
+      margin-bottom: 16px;
+    }
+
+    .principles-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-width: 480px;
+      margin: 24px auto 0;
+      text-align: left;
+    }
+
+    .principle {
+      font-size: 15px;
+      color: var(--text2);
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .principle strong {
+      color: var(--text);
+    }
+
+    /* Footer */
+    footer {
+      padding: 40px 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: var(--text3);
+      font-size: 13px;
+    }
+
+    footer a {
+      color: var(--text2);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      color: var(--accent);
+    }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 32px; }
+      .subtitle { font-size: 17px; }
+      .formula { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="hero">
+      <div class="logo">P</div>
+      <h1>Logic</h1>
+      <p class="subtitle">A reasoning system that expands your map, not confirms it. Operate the Concept Engine protocol powered by Claude AI.</p>
+      <div class="cta-row">
+        <a href="https://github.com/joseandv-creator/logic-concept-engine" class="btn btn-primary">Get the Extension</a>
+        <a href="https://github.com/joseandv-creator/logic-concept-engine" class="btn btn-secondary">View Source</a>
+      </div>
+    </section>
+
+    <section class="formula-section">
+      <div class="formula">C = S(v) x O(v) x R(v) | VB</div>
+      <p class="formula-desc">Every concept is decomposed into Subject, Object, and Relation fidelity, scored against a Sought Value. Any component at zero collapses the entire concept. Partial fidelity is more dangerous than zero.</p>
+    </section>
+
+    <section class="features">
+      <h2>What Logic does</h2>
+      <div class="features-grid">
+        <div class="feature">
+          <h3>Decompose</h3>
+          <p>Every input is broken into S, O, R, and VB. If the Sought Value is absent, the system halts until you declare it.</p>
+        </div>
+        <div class="feature">
+          <h3>Score</h3>
+          <p>Each component gets a fidelity score from 0 to 1. Below 0.5 means the concept needs reconstruction before use.</p>
+        </div>
+        <div class="feature">
+          <h3>Eliminate</h3>
+          <p>Only what survives contact with territory in 3+ contexts is retained. Empty residue is declared NULL, not named.</p>
+        </div>
+        <div class="feature">
+          <h3>Audit</h3>
+          <p>Traces where your concepts came from. Inherited language enters the map before the auditing instrument exists.</p>
+        </div>
+        <div class="feature">
+          <h3>Collective Intelligence</h3>
+          <p>Share discovered relations between system levels. When multiple users independently find the same connection, it becomes verified territory.</p>
+        </div>
+        <div class="feature">
+          <h3>Declare Limits</h3>
+          <p>Unknown territory is marked, never filled with projection. "I don't know" at the map edge is more navigable than confident invention beyond it.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="how">
+      <h2>Get started</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <p>Download the extension from GitHub and load it in Chrome (Developer mode > Load unpacked)</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <p>Enter your Anthropic API key in Options. You bring your own key — Logic stores nothing on external servers.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <p>Click the Logic icon to open the side panel. Start thinking. The system will decompose, score, and audit your concepts.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <p>Analyze any web page through the Concept Engine lens. Logic detects who publishes and why, not just what.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="principles">
+      <h2>Core principles</h2>
+      <div class="principles-list">
+        <div class="principle"><strong>The navigator is the map</strong> — not: the navigator has a map</div>
+        <div class="principle"><strong>The map is not the territory</strong> — partial fidelity is more dangerous than zero</div>
+        <div class="principle"><strong>The territory always wins</strong> — when map and territory diverge, update the map</div>
+        <div class="principle"><strong>Distortion accumulates by default</strong> — reversal requires active energy</div>
+        <div class="principle"><strong>Comprehension = elimination</strong> — what survives testing, name it. What doesn't, discard it.</div>
+      </div>
+    </section>
+
+    <footer>
+      <p>Logic is free and open source. <a href="https://github.com/joseandv-creator/logic-concept-engine">GitHub</a> &middot; <a href="privacy-policy.html">Privacy Policy</a></p>
+      <p style="margin-top: 8px;">Built by Jose. The territory decides.</p>
+    </footer>
+  </div>
+</body>
+</html>
