@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logic — Privacy Policy</title>
+  <style>
+    body { font-family: -apple-system, system-ui, sans-serif; max-width: 680px; margin: 40px auto; padding: 0 20px; color: #333; line-height: 1.6; }
+    h1 { font-size: 24px; }
+    h2 { font-size: 18px; margin-top: 32px; }
+    p { margin: 12px 0; }
+    .date { color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>Logic — Privacy Policy</h1>
+  <p class="date">Last updated: March 11, 2025</p>
+
+  <h2>What Logic does</h2>
+  <p>Logic is a Chrome extension that uses the Anthropic Claude API to analyze your thinking through the Concept Engine protocol. You provide your own API key.</p>
+
+  <h2>Data we collect</h2>
+  <p><strong>We do not collect personal data.</strong> Logic stores your settings (API key, preferences) locally in your browser using Chrome's storage API. This data never leaves your device except when communicating with Anthropic's API.</p>
+
+  <h2>Collective Network (opt-in only)</h2>
+  <p>If you choose to participate in the collective network, Logic shares:</p>
+  <ul>
+    <li>The combination of system levels touched by a relation (e.g., "A6+P1+L1")</li>
+    <li>A short description of the relation (max 280 characters)</li>
+    <li>Fidelity scores (C values before and after)</li>
+    <li>An anonymous identifier (random UUID generated on install, not linked to any personal information)</li>
+  </ul>
+  <p>This data is stored on Supabase (PostgreSQL). No names, emails, browsing history, or personal information is collected or transmitted.</p>
+
+  <h2>API communication</h2>
+  <p>Your messages are sent directly from your browser to Anthropic's API using your own API key. Logic does not proxy, store, or log your conversations. Anthropic's own privacy policy applies to that communication.</p>
+
+  <h2>Web page analysis</h2>
+  <p>When you choose to analyze a web page, the page content is extracted locally and sent to Anthropic's API as part of your conversation. It is not stored or sent anywhere else.</p>
+
+  <h2>Third-party services</h2>
+  <ul>
+    <li><strong>Anthropic API</strong> — processes your messages. See <a href="https://www.anthropic.com/privacy">Anthropic's Privacy Policy</a>.</li>
+    <li><strong>Supabase</strong> (opt-in collective only) — stores anonymous relation data. See <a href="https://supabase.com/privacy">Supabase's Privacy Policy</a>.</li>
+  </ul>
+
+  <h2>Data deletion</h2>
+  <p>All local data can be deleted by uninstalling the extension or clearing extension data in Chrome settings. To delete collective network data, contact us.</p>
+
+  <h2>Contact</h2>
+  <p>For questions about this privacy policy, open an issue on our GitHub repository.</p>
+</body>
+</html>
