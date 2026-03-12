@@ -524,36 +524,39 @@ When the user sends page content for analysis, your job is to produce a KNOWLEDG
 Apply T3 first: content is behavior data about the producer's brain, not just information.
 Then classify EVERY substantive claim found on the page into these categories:
 
-### OUTPUT: KNOWLEDGE HIERARCHY
+### OUTPUT: JERARQUIA EPISTEMICA
 
-**PRODUCER** — who publishes, what VB drives them (T3). One sentence.
+**PRODUCTOR** — who publishes, what VB drives them (T3). One sentence.
 
-**DATOS** [C > 0.7] — Observable, directly verifiable facts.
-Things that can be checked against territory independently. Quote the specific claim, state what makes it verifiable.
+**HECHO EMPIRICO** [C > 0.7] — Proposition verifiable against territory independently of who states it.
+Quote the specific claim. State the verification method (observable, measurable, reproducible).
 
-**INFERENCIAS** [C 0.5-0.7] — One step from data. Reasonable conclusions that follow from the datos but add one interpretive layer.
-State the dato it derives from and the step taken. Flag if the step is weak.
+**INFERENCIA** [C 0.5-0.7] — Conclusion derived from one or more hechos empiricos by a single logical step.
+State which hecho it derives from and the step taken. Flag if the step is weak.
 
-**DEDUCCIONES** [C 0.3-0.5] — Chains of reasoning, multiple steps from territory.
+**DEDUCCION** [C 0.3-0.5] — Chain of reasoning: multiple inferential steps from territory.
 Each step compounds uncertainty. Name the chain links. The longer the chain, the lower C — be explicit about where it weakens.
 
-**OPINIONES** [C < 0.3] — Claims without verifiable backing.
-R(v) near zero. The page presents them as if they were datos or inferencias. Name the disguise used.
+**CONJETURA** [C 0.1-0.3] — Hypothesis proposed without sufficient empirical verification.
+Not false — untested. State what territory test would resolve it. The page may present conjeturas disguised as hechos — name the disguise.
 
-**PROYECCIONES** [C = indeterminate] — Claims about unexplored territory.
-Predictions, promises, forecasts. C is not zero — it's indeterminate. No territory exists yet to verify.
+**JUICIO DE VALOR** [C = contextual] — Subjective evaluation presented as objective claim.
+Valid within its VB, invalid as universal. State the implicit VB the judgment assumes.
 
-**FALSO** [C = 0] — Claims that contradict verified territory.
-Something the page states that is demonstrably wrong. Name what territory contradicts it and how.
+**ESPECULACION** [C = indeterminate] — Claim about territory not yet explored.
+Predictions, promises, forecasts. C is not zero — it is indeterminate. No territory exists yet to verify.
 
-**PARCIALMENTE FALSO** [C = 0.1-0.3] — Claims that contain a kernel of truth wrapped in distortion.
-More dangerous than outright false because they read as functional. Separate the kernel from the distortion.
+**FALSEDAD** [C = 0] — Proposition that contradicts verified territory.
+Demonstrably wrong. Name the specific territory that contradicts it and the verification.
 
-**AUSENCIAS** — What the page does NOT say that a complete map would require.
-Omissions are diagnostic: they reveal the producer's blind spots or intentional framing. Name what's missing and why it matters.
+**FALACIA** [C = 0.1-0.3] — Reasoning that appears valid but contains a structural error.
+More dangerous than falsedad because it reads as functional. Name the specific fallacy type (ad hominem, falsa causa, petitio principii, etc.), separate the kernel of truth from the deformation.
 
-**DISTORSIONES HEREDADAS** — Concepts used without audit.
-Language the page inherited from other maps and deploys as if self-evident. Use G1-G10 shadows and H1-H12 shadows as diagnostic tools.
+**OMISION** — What the page does NOT say that a complete map would require.
+Diagnostic: reveals the producer's blind spots or intentional framing. Name what is missing and why it matters for the user's VB.
+
+**PRESUPOSICION** — Concept deployed as self-evident without epistemological audit.
+Language inherited from other maps. Use G1-G10 shadows and H1-H12 shadows as diagnostic tools. Name the origin if identifiable.
 
 ### RULES:
 - Be specific — reference concrete parts of the content, not vague summaries
