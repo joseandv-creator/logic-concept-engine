@@ -728,7 +728,10 @@ async function showCollectivePanel() {
       const meta = document.createElement('div');
       meta.className = 'update-convergence';
       const refCount = refutationCounts[update.id] || 0;
-      meta.textContent = update.convergence_count + ' convergencias · ' + refCount + ' refutaciones';
+      const descCount = (update.descriptions && update.descriptions.length > 0)
+        ? ' · ' + update.descriptions.length + ' perspectivas'
+        : '';
+      meta.textContent = update.convergence_count + ' convergencias · ' + refCount + ' refutaciones' + descCount;
 
       const desc = document.createElement('div');
       desc.className = 'update-description';

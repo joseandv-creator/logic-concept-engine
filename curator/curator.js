@@ -52,7 +52,7 @@ class CuratorClient {
     };
   }
 
-  async approveRelation(levelCombo, description, curatorNote, convergenceCount, avgCBefore, avgCAfter) {
+  async approveRelation(levelCombo, description, curatorNote, convergenceCount, avgCBefore, avgCAfter, descriptions) {
     const existing = await this._fetch('/system_updates?order=version.desc&limit=1');
     const nextVersion = (existing && existing.length > 0) ? existing[0].version + 1 : 1;
     const now = new Date().toISOString();
@@ -79,6 +79,7 @@ class CuratorClient {
       body: JSON.stringify({
         level_combo: levelCombo,
         description: description,
+        descriptions: descriptions || [],
         convergence_count: convergenceCount,
         curator_note: curatorNote,
         version: nextVersion,
@@ -282,7 +283,9 @@ detectBtn.addEventListener('click', async () => {
       const cValues = document.createElement('div');
       cValues.className = 'conv-c';
       const ws = r.weighted_score !== undefined ? ` · score: ${r.weighted_score}` : '';
-      cValues.textContent = `C promedio: ${r.avg_c_before} → ${r.avg_c_after}${ws}`;
+      const stddev = r.c_stddev !== undefined ? ` · σ: ${r.c_stddev}` : '';
+      const descCount = r.description_count !== undefined ? ` · ${r.description_count} perspectivas` : '';
+      cValues.textContent = `C promedio: ${r.avg_c_before} → ${r.avg_c_after}${ws}${stddev}${descCount}`;
 
       const descs = document.createElement('div');
       descs.className = 'conv-descriptions';
@@ -302,7 +305,7 @@ detectBtn.addEventListener('click', async () => {
 
       const noteInput = document.createElement('input');
       noteInput.type = 'text';
-      noteInput.placeholder = 'Nota del curator (opcional)';
+      noteInput.placeholder = 'Nota del curator (requerida)';
 
       const actions = document.createElement('div');
       actions.className = 'conv-actions';
@@ -312,13 +315,16 @@ detectBtn.addEventListener('click', async () => {
       approveBtn.textContent = 'Aprobar';
       approveBtn.addEventListener('click', async () => {
         const desc = descInput.value.trim();
+        const note = noteInput.value.trim();
         if (!desc) { descInput.style.borderColor = '#ef4444'; return; }
+        if (!note) { noteInput.style.borderColor = '#ef4444'; return; }
         approveBtn.disabled = true;
         approveBtn.textContent = 'Aprobando...';
         try {
           await client.approveRelation(
-            r.level_combo, desc, noteInput.value.trim(),
-            r.unique_users, r.avg_c_before, r.avg_c_after
+            r.level_combo, desc, note,
+            r.unique_users, r.avg_c_before, r.avg_c_after,
+            r.descriptions || []
           );
           card.style.borderColor = '#22c55e';
           approveBtn.textContent = 'Aprobado';
