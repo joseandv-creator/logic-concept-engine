@@ -13,7 +13,7 @@
   ],
   "host_permissions": [
     "https://api.anthropic.com/*",
-    "https://*/*"
+    "https://*.supabase.co/*"
   ],
   "background": {
     "service_worker": "background.js"
