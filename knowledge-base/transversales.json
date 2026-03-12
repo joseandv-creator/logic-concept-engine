@@ -1,0 +1,25 @@
+{
+  "category": "TRANSVERSALES",
+  "status": "COMPRESSED",
+  "note": "Insights that touch multiple levels simultaneously. The compressed form IS the knowledge.",
+  "principles": [
+    {
+      "id": "T1",
+      "name": "Sistema categorial es instrumento perspectivo de S",
+      "description": "Todo sistema categorial es instrumento perspectivo de S, no propiedad de O. Adoptar categorias sin auditar desde que VB fueron disenadas = heredar distorsion.",
+      "levels_touched": ["A6", "P1", "L1", "G6"]
+    },
+    {
+      "id": "T2",
+      "name": "Sistema que parece completo = has dejado de ver sus limites",
+      "description": "La sensacion de completitud es sintoma de mapa cerrado, no de territorio conquistado.",
+      "levels_touched": ["L1", "G9"]
+    },
+    {
+      "id": "T3",
+      "name": "Internet es telescopio apuntado al cerebro humano",
+      "description": "Analizar quien publica y por que deriva mas conocimiento sobre S que analizar que publica sobre O. Contenido = mapa del publicador. Patron = distorsion colectiva. Ausencia = punto ciego. Reaccion emocional = mapa fragil.",
+      "levels_touched": ["A6", "P3", "H5", "H8", "ley_de_evasion"]
+    }
+  ]
+}

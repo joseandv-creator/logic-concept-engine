@@ -770,6 +770,40 @@ textarea::placeholder {
   color: var(--success);
 }
 
+/* Integrated updates */
+.update-card.integrated {
+  border-left-color: var(--accent);
+  opacity: 0.85;
+}
+
+.refute-btn {
+  font-size: 11px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.refute-btn:hover {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.refute-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.refute-btn.refuted {
+  border-color: var(--error);
+  color: var(--error);
+  opacity: 0.6;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

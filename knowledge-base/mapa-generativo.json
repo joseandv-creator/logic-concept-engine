@@ -1,0 +1,77 @@
+{
+  "category": "MAPA GENERATIVO",
+  "status": "COMPRESSED_KNOWLEDGE",
+  "note": "Every domain of human knowledge is S examining a specific O through R | VB. The domain IS the choice of O.",
+  "principles": [
+    {
+      "id": "G1",
+      "name": "PERSISTENCIA",
+      "description": "Something is invariant under transformation",
+      "shadow": "Assuming everything changes OR assuming nothing does",
+      "SOR": "S fails to identify what persists in O -> R has no anchor"
+    },
+    {
+      "id": "G2",
+      "name": "ENTROPIA",
+      "description": "Disorder grows without work",
+      "shadow": "Expecting maintenance for free",
+      "SOR": "S assumes R holds without energy input -> R decays invisibly"
+    },
+    {
+      "id": "G3",
+      "name": "SELECCION",
+      "description": "Variation + differential survival = directed change",
+      "shadow": "Controlling variation (rigidity) or skipping selection (wanting guarantees)",
+      "SOR": "S forces R onto O instead of letting territory select"
+    },
+    {
+      "id": "G4",
+      "name": "FEEDBACK",
+      "description": "Output becomes input",
+      "shadow": "Ignoring signals (denial) or drowning in them (no filter)",
+      "SOR": "S blocks feedback from O -> map and territory diverge"
+    },
+    {
+      "id": "G5",
+      "name": "EMERGENCIA",
+      "description": "Simple rules iterated = irreducible complexity",
+      "shadow": "Explaining the emergent by reducing to components (losing structure)",
+      "SOR": "S models O at wrong level -> R misses the operative layer"
+    },
+    {
+      "id": "G6",
+      "name": "RESTRICCION DA FORMA",
+      "description": "Optimization within boundaries",
+      "shadow": "Ignoring constraints (fantasy) or accepting false constraints (learned helplessness)",
+      "SOR": "S misidentifies real constraints on O -> R optimizes within wrong limits"
+    },
+    {
+      "id": "G7",
+      "name": "SIMETRIA REVELA ESTRUCTURA",
+      "description": "What is invariant under transformation is more fundamental",
+      "shadow": "Confusing surface similarity with deep structure (false analogy)",
+      "SOR": "S maps O by surface features -> R = false correspondence"
+    },
+    {
+      "id": "G8",
+      "name": "INFORMACION TIENE COSTO",
+      "description": "Knowing changes capacity to act, measuring is not free",
+      "shadow": "Acting without information (recklessness) or seeking it indefinitely (paralysis)",
+      "SOR": "S ignores O's real state or tries to know it completely before acting"
+    },
+    {
+      "id": "G9",
+      "name": "AUTO-REFERENCIA TIENE LIMITES",
+      "description": "Systems modeling themselves hit irreducible boundaries",
+      "shadow": "Believing you can fully audit yourself from inside",
+      "SOR": "S tries to be both S and O simultaneously -> R = circular (L1)"
+    },
+    {
+      "id": "G10",
+      "name": "TRANSICIONES DE UMBRAL",
+      "description": "Gradual accumulation -> sudden qualitative shift",
+      "shadow": "Projecting linearity (can't see the cliff until falling)",
+      "SOR": "S projects linear R onto O that has nonlinear thresholds"
+    }
+  ]
+}

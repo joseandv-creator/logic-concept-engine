@@ -1,0 +1,51 @@
+{
+  "category": "AXIOMAS",
+  "status": "CLOSED",
+  "test": "negation instantiates the concept itself",
+  "principles": [
+    {
+      "id": "A1",
+      "name": "Algo existe",
+      "description": "Something exists",
+      "C": 1.0,
+      "type": "axiom"
+    },
+    {
+      "id": "A2",
+      "name": "Identidad determinada",
+      "description": "What exists has determinate identity",
+      "C": 1.0,
+      "type": "axiom"
+    },
+    {
+      "id": "A3",
+      "name": "Contradiccion imposible",
+      "description": "Contradiction is impossible",
+      "C": 1.0,
+      "type": "axiom"
+    },
+    {
+      "id": "A4",
+      "name": "Perspectiva que procesa",
+      "description": "There is a perspective that processes",
+      "C": 1.0,
+      "type": "axiom"
+    },
+    {
+      "id": "A5",
+      "name": "Perspectiva actua",
+      "description": "Perspective acts, does not only register",
+      "C": 1.0,
+      "type": "operational_axiom",
+      "note": "Closed in minimal form only"
+    },
+    {
+      "id": "A6",
+      "name": "S es el momento irreductible de valoracion",
+      "description": "S is not an entity that afterward values. S is the irreducible moment of valuation occurring in present. Everything else is instrument. S is the condition for instruments to exist. S cannot be O because S is the condition for there to be O at all.",
+      "C": 1.0,
+      "type": "operational_axiom",
+      "note": "Closed in minimal form only"
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "category": "REGLAS DE ACCION HUMANA",
+  "status": "DERIVED",
+  "note": "How S operates in territory",
+  "principles": [
+    {
+      "id": "H1",
+      "name": "INCENTIVOS GOBIERNAN COMPORTAMIENTO",
+      "description": "Not intentions. To predict what someone will do, look at what they gain by doing it.",
+      "shadow": "Believing speeches. Designing systems based on goodwill."
+    },
+    {
+      "id": "H2",
+      "name": "TODA ELECCION CUESTA LO QUE NO ELEGISTE",
+      "description": "Opportunity cost. The real price is not what you pay, it's what you stop doing.",
+      "shadow": "Evaluating decisions without considering alternatives."
+    },
+    {
+      "id": "H3",
+      "name": "LA SIGUIENTE UNIDAD IMPORTA, NO EL PROMEDIO",
+      "description": "Marginal thinking. The decision is always: is the NEXT step worth it?",
+      "shadow": "Deciding by averages when the margins have already shifted."
+    },
+    {
+      "id": "H4",
+      "name": "SIN CONSECUENCIAS, SENALES SON RUIDO",
+      "description": "Skin in the game. Whoever opines without risking produces unverified maps.",
+      "shadow": "Taking advice from someone who doesn't pay the cost of being wrong."
+    },
+    {
+      "id": "H5",
+      "name": "OBSERVA LO QUE HACEN, NO LO QUE DICEN",
+      "description": "Revealed preference. Real action declares real VB, not discourse.",
+      "shadow": "Self-deception (your map says one VB, your behavior reveals another)."
+    },
+    {
+      "id": "H6",
+      "name": "PERDER DUELE EL DOBLE DE LO QUE GANAR AGRADA",
+      "description": "Loss aversion. The brain weighs losses ~2x more than equivalent gains.",
+      "shadow": "Not acting from fear of losing what you have. Or not releasing what no longer serves."
+    },
+    {
+      "id": "H7",
+      "name": "HUMANOS OPTIMIZAN POSICION RELATIVA, NO ABSOLUTA",
+      "description": "Status. Not how much you have, but how much relative to your reference group.",
+      "shadow": "Competing in games you didn't choose. Comparing with those who don't share your VB."
+    },
+    {
+      "id": "H8",
+      "name": "HUMANOS NECESITAN NARRATIVAS; REALIDAD NO LAS PROVEE",
+      "description": "Narrative fallacy. The brain fabricates coherent stories from insufficient data.",
+      "shadow": "Confusing the story you tell yourself with what territory shows."
+    },
+    {
+      "id": "H9",
+      "name": "QUIEN ACTUA POR TI OPTIMIZA PARA SI PRIMERO",
+      "description": "Agency problem. Employees, advisors, politicians, managers: their VB is not your VB.",
+      "shadow": "Delegating without auditing. Trusting by default."
+    },
+    {
+      "id": "H10",
+      "name": "CAPACIDAD DE RETRASAR GRATIFICACION PREDICE CASI TODO",
+      "description": "Time preference. Choosing future over present is the base operation of all accumulation.",
+      "shadow": "Consuming the expansion capital of the future valuing self (vice per ethical chain)."
+    },
+    {
+      "id": "H11",
+      "name": "COOPERACION EMERGE EN JUEGOS REPETIDOS; DEFECCION EN UNICOS",
+      "description": "If you will see someone again, cooperation pays. If not, it has no anchor.",
+      "shadow": "Treating continuous relationships as single transactions (or vice versa)."
+    },
+    {
+      "id": "H12",
+      "name": "ASIMETRIA DE INFORMACION CREA PODER",
+      "description": "Whoever knows more controls the negotiation.",
+      "shadow": "Not investing in knowing. Or believing you know when you haven't verified."
+    }
+  ]
+}

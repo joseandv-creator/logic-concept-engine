@@ -1,0 +1,31 @@
+{
+  "category": "FRONTERAS ABIERTAS",
+  "status": "OPEN",
+  "note": "In order of hierarchy",
+  "principles": [
+    {
+      "id": "F2",
+      "name": "El otro como auditor",
+      "description": "Partially resolves L1 — highest hierarchy available",
+      "hierarchy": 1
+    },
+    {
+      "id": "F1",
+      "name": "Tiempo y timing",
+      "description": "Touches A5 and ethical chain. Correct timing = courage + confidence. Fails when instrument evaluation comes from inherited map not from real territory.",
+      "hierarchy": 2
+    },
+    {
+      "id": "F3",
+      "name": "Cuerpo como instrumento",
+      "description": "Touches A6. Maintenance protocol not yet derived.",
+      "hierarchy": 3
+    },
+    {
+      "id": "F4",
+      "name": "Escala colectiva",
+      "description": "Touches derived laws. Has initial territory.",
+      "hierarchy": 4
+    }
+  ]
+}

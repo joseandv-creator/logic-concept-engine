@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logic — Curator Dashboard</title>
+  <link rel="stylesheet" href="curator.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">P</div>
+      <h1>Logic — Curator (S1)</h1>
+    </header>
+
+    <section id="configSection">
+      <h2>Configuracion Supabase</h2>
+      <div class="config-row">
+        <input type="text" id="supabaseUrl" placeholder="URL del proyecto Supabase">
+        <input type="password" id="serviceKey" placeholder="Service Role Key">
+        <button id="connectBtn">Conectar</button>
+      </div>
+      <div id="connectionStatus" class="status"></div>
+    </section>
+
+    <section id="statsSection" style="display:none;">
+      <h2>Estadisticas</h2>
+      <div id="stats" class="stats-grid"></div>
+    </section>
+
+    <section id="convergenceSection" style="display:none;">
+      <div class="section-top">
+        <h2>Convergencias</h2>
+        <div class="threshold-row">
+          <label>Umbral:</label>
+          <input type="number" id="threshold" value="3" min="1" max="100">
+          <button id="detectBtn">Detectar</button>
+        </div>
+      </div>
+      <div id="convergenceList"></div>
+    </section>
+
+    <section id="approvedSection" style="display:none;">
+      <h2>Updates Publicados</h2>
+      <div id="approvedList"></div>
+    </section>
+
+    <section id="graphSection" style="display:none;">
+      <div class="section-top">
+        <h2>Grafo de Relaciones</h2>
+        <div class="threshold-row">
+          <button id="buildGraphBtn">Construir Grafo</button>
+          <button id="viewGraphBtn">Ver Resumen</button>
+        </div>
+      </div>
+      <div id="graphResult"></div>
+    </section>
+
+    <section id="gapsSection" style="display:none;">
+      <div class="section-top">
+        <h2>Terra Incognita</h2>
+        <button id="detectGapsBtn">Detectar Huecos</button>
+      </div>
+      <div id="gapsList"></div>
+    </section>
+
+    <section id="contradictionsSection" style="display:none;">
+      <div class="section-top">
+        <h2>Contradicciones</h2>
+        <button id="detectContradictionsBtn">Detectar</button>
+      </div>
+      <div id="contradictionsList"></div>
+    </section>
+
+    <section id="refutationsSection" style="display:none;">
+      <h2>Refutaciones</h2>
+      <div id="refutationsList"></div>
+    </section>
+  </div>
+
+  <script src="curator.js"></script>
+</body>
+</html>

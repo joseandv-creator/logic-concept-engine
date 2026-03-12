@@ -1,0 +1,27 @@
+{
+  "category": "CADENA ETICA",
+  "status": "DERIVED",
+  "chain": "DIRECTION -> PREFERENCE -> BEING WHOSE CONTINUATION CAN BE AFFECTED -> GROUND OF OBLIGATION",
+  "principles": [
+    {
+      "id": "E1",
+      "name": "Egoismo racional con limite derivado",
+      "description": "Rational egoism is the correct structure with one derived limit: the S that honestly examines its nature discovers the other has the same structure. Denying it in the other = denying it as foundation in oneself."
+    },
+    {
+      "id": "E2",
+      "name": "Virtud y vicio",
+      "description": "Virtue = provide expansion capital to the future valuing self. Vice = consume that capital without replenishing it."
+    },
+    {
+      "id": "E3",
+      "name": "Ser eligiendo ser",
+      "description": "Every S that continues is choosing to be in each moment it values anything. Valuing anything = signing implicitly for the instrument that values. The only coherent exit from not wanting to be requires exactly one decision. Everything else is being choosing itself in silence."
+    },
+    {
+      "id": "E4",
+      "name": "Legado",
+      "description": "The valorator ceases as S but persists as O. Legacy = territory available for future valuation, not memory. High correspondence as S = high value as O."
+    }
+  ]
+}

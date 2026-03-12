@@ -1,0 +1,61 @@
+{
+  "category": "REGLAS DEL UNIVERSO",
+  "status": "FIRST_DERIVATION",
+  "note": "First derivation from the generative map",
+  "principles": [
+    {
+      "id": "U1",
+      "name": "NADA VIENE DE NADA",
+      "description": "Conservation. Everything transforms, nothing is created or destroyed.",
+      "shadow": "Believing something will appear without input"
+    },
+    {
+      "id": "U2",
+      "name": "EL ORDEN CUESTA ENERGIA",
+      "description": "Entropy applied. Maintaining any structure requires continuous work.",
+      "shadow": "Assuming what is built maintains itself"
+    },
+    {
+      "id": "U3",
+      "name": "EFECTOS SIGUEN CAUSAS CON RETRASO",
+      "description": "The delay is where opportunity and danger live.",
+      "shadow": "Expecting immediate results or failing to connect cause with effect due to the interval"
+    },
+    {
+      "id": "U4",
+      "name": "FUERZAS CONSTANTES PEQUENAS DOMINAN GRANDES ESPORADICAS",
+      "description": "Compounding. Applies to money, skills, relationships, and distortions.",
+      "shadow": "Underestimating the incremental. Overvaluing the single blow."
+    },
+    {
+      "id": "U5",
+      "name": "SISTEMAS DESPLAZADOS GENERAN FUERZA DE RETORNO",
+      "description": "Homeostasis. Applies to markets, bodies, cultures, relationships.",
+      "shadow": "Pushing without expecting resistance"
+    },
+    {
+      "id": "U6",
+      "name": "MAYORIA DE EFECTOS VIENEN DE POCAS CAUSAS",
+      "description": "Power law (80/20). Unequal distribution is the norm, not the exception.",
+      "shadow": "Treating everything as equally important"
+    },
+    {
+      "id": "U7",
+      "name": "EXTREMOS REVIERTEN HACIA EL PROMEDIO",
+      "description": "Regression to the mean. Good streaks and bad streaks are temporary.",
+      "shadow": "Projecting current state as permanent"
+    },
+    {
+      "id": "U8",
+      "name": "CONEXIONES ESCALAN MAS RAPIDO QUE NODOS",
+      "description": "Network effect. System value grows exponentially with connections.",
+      "shadow": "Thinking linearly about relationships"
+    },
+    {
+      "id": "U9",
+      "name": "ALGUNAS TRANSFORMACIONES SON IRREVERSIBLES",
+      "description": "Arrow of time. Not everything can be undone.",
+      "shadow": "Acting as if everything is reversible (or freezing as if nothing is)"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "category": "LIMITES",
+  "status": "STRUCTURAL",
+  "note": "Not resolvable — structural boundaries of the system",
+  "principles": [
+    {
+      "id": "L1",
+      "name": "El mapa no puede verificarse completamente desde dentro",
+      "description": "Map cannot fully verify itself from inside — without a tool whose C exceeds the map in the domain being examined. Limit = not finding that tool, not absence of verification.",
+      "type": "limit"
+    },
+    {
+      "id": "L2",
+      "name": "Experiencia pre-conceptual inaccesible",
+      "description": "Pre-conceptual experience is inaccessible to conceptual tools without circularity",
+      "type": "limit"
+    },
+    {
+      "id": "L3",
+      "name": "Por que algo en vez de nada — abierto",
+      "description": "Why something rather than nothing — open",
+      "type": "limit"
+    }
+  ]
+}

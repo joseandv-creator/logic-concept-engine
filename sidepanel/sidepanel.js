@@ -698,6 +698,75 @@ async function showCollectivePanel() {
     });
   }
 
+  // Integrated updates section (with refutation)
+  const { integratedUpdates = [] } = await chrome.storage.local.get(['integratedUpdates']);
+  if (integratedUpdates.length > 0) {
+    let refutationCounts = {};
+    try {
+      const rcRes = await chrome.runtime.sendMessage({ type: 'getRefutationCounts' });
+      refutationCounts = rcRes.counts || {};
+    } catch (e) {}
+
+    const intHeader = document.createElement('div');
+    intHeader.className = 'section-header';
+    intHeader.textContent = 'Integrados (' + integratedUpdates.length + ')';
+    collectiveContent.appendChild(intHeader);
+
+    integratedUpdates.forEach(update => {
+      const card = document.createElement('div');
+      card.className = 'update-card integrated';
+
+      const level = document.createElement('div');
+      level.className = 'update-level';
+      level.textContent = update.level_combo;
+
+      const meta = document.createElement('div');
+      meta.className = 'update-convergence';
+      const refCount = refutationCounts[update.id] || 0;
+      meta.textContent = update.convergence_count + ' convergencias · ' + refCount + ' refutaciones';
+
+      const desc = document.createElement('div');
+      desc.className = 'update-description';
+      desc.textContent = update.description;
+
+      card.appendChild(level);
+      card.appendChild(meta);
+      card.appendChild(desc);
+
+      if (update.curator_note) {
+        const note = document.createElement('div');
+        note.className = 'update-note';
+        note.textContent = update.curator_note;
+        card.appendChild(note);
+      }
+
+      const refuteBtn = document.createElement('button');
+      refuteBtn.className = 'refute-btn';
+      refuteBtn.textContent = 'No se sostuvo';
+      refuteBtn.addEventListener('click', async () => {
+        refuteBtn.disabled = true;
+        refuteBtn.textContent = 'Enviando...';
+        const res = await chrome.runtime.sendMessage({
+          type: 'submitRefutation',
+          updateId: update.id,
+          contextDescription: 'Refutado desde sidepanel por el operador'
+        });
+        if (res.error === 'ALREADY_REFUTED') {
+          refuteBtn.textContent = 'Ya refutado';
+          refuteBtn.className = 'refute-btn refuted';
+        } else if (res.success) {
+          refuteBtn.textContent = 'Refutado';
+          refuteBtn.className = 'refute-btn refuted';
+        } else {
+          refuteBtn.textContent = 'Error';
+          refuteBtn.disabled = false;
+        }
+      });
+      card.appendChild(refuteBtn);
+      collectiveContent.appendChild(card);
+    });
+  }
+
   chatContainer.style.display = 'none';
   inputArea.style.display = 'none';
   insightsPanel.style.display = 'none';

@@ -84,6 +84,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
     return true;
   }
+  if (message.type === 'submitRefutation') {
+    submitRefutation(message.updateId, message.contextDescription).then(sendResponse);
+    return true;
+  }
+  if (message.type === 'getRefutationCounts') {
+    getRefutationCounts().then(sendResponse);
+    return true;
+  }
+  if (message.type === 'getGraphSummary') {
+    getGraphSummary().then(sendResponse);
+    return true;
+  }
 });
 
 async function getApiKey() {
@@ -252,39 +264,15 @@ async function deleteCorrection(index) {
   return { success: true, corrections };
 }
 
-// Auto-bridge: sync insights+corrections to disk as JSON
+// Auto-bridge: sync insights+corrections to storage (no file I/O in MV3 service worker)
 async function syncInsightsToFile() {
-  const { insights = [] } = await chrome.storage.local.get(['insights']);
-  const { corrections = [] } = await chrome.storage.local.get(['corrections']);
-  const data = JSON.stringify({ insights, corrections, lastSync: new Date().toISOString() }, null, 2);
-  const blob = new Blob([data], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  try {
-    await chrome.downloads.download({
-      url: url,
-      filename: 'logic-insights.json',
-      conflictAction: 'overwrite',
-      saveAs: false
-    });
-  } catch (err) {
-    console.error('Sync to file failed:', err);
-  }
+  // Data already persists in chrome.storage.local — no action needed
 }
 
-// Manual export: download insights as JSON with saveAs dialog
+// Manual export: open export page where user can copy/download
 async function exportInsightsToFile() {
-  const { insights = [] } = await chrome.storage.local.get(['insights']);
-  const { corrections = [] } = await chrome.storage.local.get(['corrections']);
-  const data = JSON.stringify({ insights, corrections, exportDate: new Date().toISOString() }, null, 2);
-  const blob = new Blob([data], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
   try {
-    await chrome.downloads.download({
-      url: url,
-      filename: 'logic-insights-export.json',
-      conflictAction: 'uniquify',
-      saveAs: true
-    });
+    await chrome.tabs.create({ url: chrome.runtime.getURL('insights-export.html') });
     return { success: true };
   } catch (err) {
     return { error: err.message };

@@ -1,0 +1,82 @@
+{
+  "system": "Concept Engine — Logic",
+  "version": "1.0",
+  "formula": "C = S(v) x O(v) x R(v) | VB",
+  "master_loop": "receive -> decompose S,O,R,VB -> score -> gate -> eliminate -> audit inheritance -> declare limits -> generate -> territory feedback -> update map -> repeat",
+  "single_line": "S-O-R | VB -> fidelity -> elimination -> limits declared -> territory corrects",
+  "files": [
+    {
+      "file": "axiomas.json",
+      "category": "Axiomas (A1-A6)",
+      "count": 6,
+      "status": "closed"
+    },
+    {
+      "file": "postulados.json",
+      "category": "Postulados (P1-P5)",
+      "count": 5,
+      "status": "declared"
+    },
+    {
+      "file": "limites.json",
+      "category": "Limites (L1-L3)",
+      "count": 3,
+      "status": "structural"
+    },
+    {
+      "file": "mapa-generativo.json",
+      "category": "Mapa Generativo (G1-G10)",
+      "count": 10,
+      "status": "compressed_knowledge"
+    },
+    {
+      "file": "reglas-universo.json",
+      "category": "Reglas del Universo (U1-U9)",
+      "count": 9,
+      "status": "first_derivation"
+    },
+    {
+      "file": "reglas-accion-humana.json",
+      "category": "Reglas de Accion Humana (H1-H12)",
+      "count": 12,
+      "status": "derived"
+    },
+    {
+      "file": "leyes-derivadas.json",
+      "category": "Leyes Derivadas (LD1-LD3)",
+      "count": 3,
+      "status": "derived"
+    },
+    {
+      "file": "cadena-etica.json",
+      "category": "Cadena Etica (E1-E4)",
+      "count": 4,
+      "status": "derived"
+    },
+    {
+      "file": "transversales.json",
+      "category": "Transversales (T1-T3)",
+      "count": 3,
+      "status": "compressed"
+    },
+    {
+      "file": "fronteras.json",
+      "category": "Fronteras Abiertas (F1-F4)",
+      "count": 4,
+      "status": "open"
+    }
+  ],
+  "total_principles": 59,
+  "hierarchy": [
+    "Axiomas (closed, C=1.0) — foundation",
+    "Postulados (declared) — framework",
+    "Limites (structural) — boundaries",
+    "Mapa Generativo — compressed knowledge across all domains",
+    "Reglas del Universo — first derivation",
+    "Reglas de Accion Humana — how S operates in territory",
+    "Leyes Derivadas — distortion, elimination, evasion",
+    "Cadena Etica — direction, virtue, legacy",
+    "Transversales — multi-level insights",
+    "Fronteras Abiertas — unexplored territory"
+  ]
+}

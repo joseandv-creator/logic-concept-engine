@@ -1,0 +1,42 @@
+{
+  "category": "POSTULADOS",
+  "status": "DECLARED",
+  "test": "negation can be formulated without using the concept — strong postulate, not axiom",
+  "principles": [
+    {
+      "id": "P1",
+      "name": "Territorio parcialmente independiente del mapa",
+      "description": "Territory is partially independent of the map",
+      "C": 0.95,
+      "type": "postulate"
+    },
+    {
+      "id": "P2",
+      "name": "Fidelidad parcial mas peligrosa que cero",
+      "description": "Partial fidelity is more dangerous than zero",
+      "C": 0.95,
+      "type": "postulate"
+    },
+    {
+      "id": "P3",
+      "name": "Sin correccion explicita la distorsion se acumula",
+      "description": "Without explicit correction, distortion accumulates by default",
+      "C": 0.95,
+      "type": "postulate"
+    },
+    {
+      "id": "P4",
+      "name": "El navegante ES el mapa",
+      "description": "The navigator IS the map — not: the navigator HAS a map",
+      "C": 0.95,
+      "type": "postulate"
+    },
+    {
+      "id": "P5",
+      "name": "Otras perspectivas existen",
+      "description": "Other perspectives exist. Basis: past self was real and unmodifiable; a projection can be modified, the past cannot.",
+      "C": 0.90,
+      "type": "postulate"
+    }
+  ]
+}
