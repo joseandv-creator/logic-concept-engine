@@ -307,8 +307,8 @@
         <div class="logo">P</div>
         <span class="logo-text">Logic</span>
       </a>
-      <h1>Verified Glossary</h1>
-      <p class="page-desc">Universal truths discovered by independent convergence. Each entry was found by multiple users working separately — no single person authored these.</p>
+      <h1>Epistemic Glossary</h1>
+      <p class="page-desc">Knowledge classified by epistemic status. Each entry was discovered by independent convergence — multiple users found the same truth separately.</p>
       <div class="page-meta" id="pageMeta"></div>
     </div>
 
@@ -344,19 +344,16 @@
   <script>
     const SUPABASE_URL = 'https://mvropqfconacrexevcsn.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12cm9wcWZjb25hY3JleGV2Y3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyODQzNjQsImV4cCI6MjA4ODg2MDM2NH0.nNsTsNDgK2GNs1LTtL7KcixHXoFNmmb2fApzyBf5Tv4';
-    const REFRESH_INTERVAL = 30 * 60 * 1000; // 30 minutes
+    const REFRESH_INTERVAL = 30 * 60 * 1000;
 
-    const LEVEL_NAMES = {
-      G: 'Genetic',
-      U: 'Unconscious',
-      H: 'Habitual',
-      D: 'Declarative',
-      I: 'Instrumental',
-      E: 'Environmental',
-      T: 'Temporal',
-      S: 'Social',
-      R: 'Relational'
-    };
+    // Epistemic hierarchy — ordered from highest to lowest C
+    const EPISTEMIC_CATEGORIES = [
+      { key: 'empirical',   name: 'Empirical Fact',  desc: 'Verifiable against territory independently of who states it', cRange: 'C > 0.7',           color: 'var(--success)' },
+      { key: 'inference',   name: 'Inference',        desc: 'Derived from empirical facts by a single logical step',       cRange: 'C 0.5 – 0.7',       color: '#3b82f6' },
+      { key: 'deduction',   name: 'Deduction',        desc: 'Chain of reasoning — multiple steps from territory',          cRange: 'C 0.3 – 0.5',       color: '#f59e0b' },
+      { key: 'conjecture',  name: 'Conjecture',       desc: 'Hypothesis with convergence but insufficient C',              cRange: 'C < 0.3',           color: '#ef4444' },
+      { key: 'refuted',     name: 'Refuted',          desc: 'Once convergent, later contradicted by territory',            cRange: 'C = 0',             color: '#71717a' }
+    ];
 
     function escapeHtml(text) {
       const div = document.createElement('div');
@@ -364,118 +361,111 @@
       return div.innerHTML;
     }
 
-    function parseLevels(levelCombo) {
-      return levelCombo.split('+').map(l => l.trim().replace(/\d+/g, ''));
+    function classifyEntry(entry, refutedIds) {
+      if (refutedIds.has(entry.id)) return 'refuted';
+      const c = entry.avg_c_after || 0;
+      if (c > 0.7) return 'empirical';
+      if (c >= 0.5) return 'inference';
+      if (c >= 0.3) return 'deduction';
+      return 'conjecture';
     }
 
-    function getLevelLetter(level) {
-      const match = level.match(/^([A-Z])/i);
-      return match ? match[1].toUpperCase() : '?';
-    }
-
-    async function fetchGlossary() {
+    async function fetchData() {
       const headers = {
         'Content-Type': 'application/json',
         'apikey': SUPABASE_KEY,
         'Authorization': 'Bearer ' + SUPABASE_KEY
       };
 
-      // Fetch convergent relations (verified truths)
-      const response = await fetch(
-        SUPABASE_URL + '/rest/v1/convergent_relations?select=*&status=eq.approved&order=convergence_count.desc',
-        { headers }
-      );
+      const [relationsRes, refutationsRes] = await Promise.all([
+        fetch(SUPABASE_URL + '/rest/v1/convergent_relations?select=*&status=eq.approved&order=convergence_count.desc', { headers }),
+        fetch(SUPABASE_URL + '/rest/v1/rpc/get_deprecated_updates', {
+          method: 'POST', headers, body: JSON.stringify({ threshold: 3 })
+        }).catch(() => ({ ok: true, json: () => [] }))
+      ]);
 
-      if (!response.ok) throw new Error('Failed to fetch');
-      return response.json();
-    }
+      if (!relationsRes.ok) throw new Error('Failed to fetch');
 
-    function groupByLevel(entries) {
-      const groups = {};
-
-      entries.forEach(entry => {
-        const levels = parseLevels(entry.level_combo);
-        const primary = getLevelLetter(levels[0] || '');
-
-        if (!groups[primary]) {
-          groups[primary] = {
-            letter: primary,
-            name: LEVEL_NAMES[primary] || primary,
-            entries: []
-          };
+      const relations = await relationsRes.json();
+      let refutedIds = new Set();
+      try {
+        const deprecated = await refutationsRes.json();
+        if (Array.isArray(deprecated)) {
+          deprecated.forEach(d => refutedIds.add(d.id || d.update_id));
         }
-        groups[primary].entries.push(entry);
-      });
+      } catch (e) {}
 
-      // Sort groups by letter
-      return Object.values(groups).sort((a, b) => a.letter.localeCompare(b.letter));
+      return { relations, refutedIds };
     }
 
-    function renderGlossary(entries) {
+    function renderGlossary(relations, refutedIds) {
       const content = document.getElementById('glossaryContent');
       const statsBar = document.getElementById('statsBar');
       const meta = document.getElementById('pageMeta');
 
-      if (!entries || entries.length === 0) {
-        content.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-icon">&#9670;</div>
-            <p>No verified truths yet. The collective network needs more independent discoveries to converge. Install Logic and start exploring.</p>
-          </div>
-        `;
+      if (!relations || relations.length === 0) {
+        content.innerHTML = '<div class="empty-state"><div class="empty-icon">&#9670;</div><p>No verified truths yet. The collective network needs more independent discoveries to converge. Install Logic and start exploring.</p></div>';
         meta.innerHTML = '<span class="refresh-dot"></span> Live — auto-refreshes every 30 minutes';
         return;
       }
 
+      // Classify into epistemic groups
+      const groups = {};
+      EPISTEMIC_CATEGORIES.forEach(cat => { groups[cat.key] = []; });
+
+      relations.forEach(entry => {
+        const cat = classifyEntry(entry, refutedIds);
+        groups[cat].push(entry);
+      });
+
       // Stats
       const allLevels = new Set();
       let totalConv = 0;
-      entries.forEach(e => {
-        parseLevels(e.level_combo).forEach(l => allLevels.add(getLevelLetter(l)));
+      relations.forEach(e => {
+        e.level_combo.split('+').forEach(l => allLevels.add(l.trim()));
         totalConv += e.convergence_count || 0;
       });
 
-      document.getElementById('totalEntries').textContent = entries.length;
+      document.getElementById('totalEntries').textContent = relations.length;
       document.getElementById('totalLevels').textContent = allLevels.size;
-      document.getElementById('totalConvergence').textContent = (totalConv / entries.length).toFixed(1);
+      document.getElementById('totalConvergence').textContent = (totalConv / relations.length).toFixed(1);
       statsBar.style.display = 'flex';
 
-      // Group and render
-      const groups = groupByLevel(entries);
+      // Render
       let html = '';
 
-      groups.forEach(group => {
-        html += `
-          <div class="level-group">
-            <div class="level-group-header">
-              <span class="level-tag">${escapeHtml(group.letter)}</span>
-              <span class="level-name">${escapeHtml(group.name)}</span>
-              <span class="level-count">${group.entries.length} ${group.entries.length === 1 ? 'truth' : 'truths'}</span>
-            </div>
-        `;
+      EPISTEMIC_CATEGORIES.forEach(cat => {
+        const entries = groups[cat.key];
+        if (entries.length === 0) return;
 
-        group.entries.forEach(entry => {
+        html += '<div class="level-group">';
+        html += '<div class="level-group-header">';
+        html += '<span class="level-tag" style="color:' + cat.color + ';background:' + cat.color + '15;">' + escapeHtml(cat.cRange) + '</span>';
+        html += '<span class="level-name">' + escapeHtml(cat.name) + '</span>';
+        html += '<span class="level-count">' + entries.length + (entries.length === 1 ? ' entry' : ' entries') + '</span>';
+        html += '</div>';
+        html += '<div style="font-size:12px;color:var(--text3);margin-bottom:12px;">' + escapeHtml(cat.desc) + '</div>';
+
+        entries.forEach(entry => {
           const convText = entry.convergence_count + ' independent discoverers';
-          const cText = 'C: ' + (entry.avg_c_before || 0).toFixed(2) + ' → ' + (entry.avg_c_after || 0).toFixed(2);
+          const cBefore = (entry.avg_c_before || 0).toFixed(2);
+          const cAfter = (entry.avg_c_after || 0).toFixed(2);
+          const isRefuted = cat.key === 'refuted';
 
           let date = '';
           if (entry.published_at) {
-            date = new Date(entry.published_at).toLocaleDateString('en', {
-              year: 'numeric', month: 'short', day: 'numeric'
-            });
+            date = new Date(entry.published_at).toLocaleDateString('en', { year: 'numeric', month: 'short', day: 'numeric' });
           }
 
-          html += `
-            <div class="entry">
-              <div class="entry-levels">${escapeHtml(entry.level_combo)}</div>
-              <div class="entry-description">${escapeHtml(entry.description)}</div>
-              <div class="entry-meta">
-                <span class="entry-convergence">${escapeHtml(convText)}</span>
-                <span>${escapeHtml(cText)}</span>
-                ${date ? '<span>' + escapeHtml(date) + '</span>' : ''}
-              </div>
-            </div>
-          `;
+          html += '<div class="entry"' + (isRefuted ? ' style="opacity:0.6;border-left:3px solid var(--text3);"' : '') + '>';
+          html += '<div class="entry-levels">' + escapeHtml(entry.level_combo) + '</div>';
+          html += '<div class="entry-description"' + (isRefuted ? ' style="text-decoration:line-through;"' : '') + '>' + escapeHtml(entry.description) + '</div>';
+          html += '<div class="entry-meta">';
+          html += '<span class="entry-convergence">' + escapeHtml(convText) + '</span>';
+          html += '<span>C: ' + escapeHtml(cBefore) + ' &rarr; ' + escapeHtml(cAfter) + '</span>';
+          if (date) html += '<span>' + escapeHtml(date) + '</span>';
+          html += '</div>';
+          html += '</div>';
         });
 
         html += '</div>';
@@ -489,21 +479,14 @@
 
     async function loadGlossary() {
       try {
-        const entries = await fetchGlossary();
-        renderGlossary(entries);
+        const { relations, refutedIds } = await fetchData();
+        renderGlossary(relations, refutedIds);
       } catch (e) {
-        document.getElementById('glossaryContent').innerHTML = `
-          <div class="error-state">
-            <p>Could not load the glossary. The collective network may be temporarily unavailable.</p>
-          </div>
-        `;
+        document.getElementById('glossaryContent').innerHTML = '<div class="error-state"><p>Could not load the glossary. The collective network may be temporarily unavailable.</p></div>';
       }
     }
 
-    // Initial load
     loadGlossary();
-
-    // Auto-refresh every 30 minutes
     setInterval(loadGlossary, REFRESH_INTERVAL);
   </script>
 </body>
