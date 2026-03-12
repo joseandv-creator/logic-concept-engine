@@ -650,6 +650,32 @@ async function showCollectivePanel() {
     empty.textContent = 'No hay actualizaciones pendientes.';
     collectiveContent.appendChild(empty);
   } else {
+    // Bulk integrate button
+    if (updates.length >= 2) {
+      const bulkBtn = document.createElement('button');
+      bulkBtn.className = 'bulk-integrate-btn';
+      bulkBtn.textContent = 'Integrar todos (' + updates.length + ')';
+      bulkBtn.addEventListener('click', async () => {
+        bulkBtn.disabled = true;
+        bulkBtn.textContent = 'Integrando...';
+        const { integratedUpdates = [] } = await chrome.storage.local.get(['integratedUpdates']);
+        for (const u of updates) {
+          u.integrated_at = new Date().toISOString();
+          integratedUpdates.push(u);
+          await chrome.runtime.sendMessage({
+            type: 'acknowledgeUpdate',
+            updateId: u.id,
+            version: u.version
+          });
+        }
+        await chrome.storage.local.set({ integratedUpdates });
+        bulkBtn.textContent = 'Todos integrados';
+        bulkBtn.style.background = 'var(--success)';
+        updateCollectiveBadge();
+      });
+      collectiveContent.appendChild(bulkBtn);
+    }
+
     updates.forEach(update => {
       const card = document.createElement('div');
       card.className = 'update-card';
@@ -666,14 +692,30 @@ async function showCollectivePanel() {
       desc.className = 'update-description';
       desc.textContent = update.description;
 
+      // Show perspectives if available
+      if (update.descriptions && update.descriptions.length > 1) {
+        const persps = document.createElement('div');
+        persps.className = 'update-perspectives';
+        persps.textContent = update.descriptions.slice(0, 3).join(' | ');
+        card.appendChild(level);
+        card.appendChild(convergence);
+        card.appendChild(desc);
+        card.appendChild(persps);
+      } else {
+        card.appendChild(level);
+        card.appendChild(convergence);
+        card.appendChild(desc);
+      }
+
       const integrateBtn = document.createElement('button');
       integrateBtn.textContent = 'Integrar';
       integrateBtn.addEventListener('click', async () => {
         integrateBtn.disabled = true;
         integrateBtn.textContent = 'Integrando...';
 
-        // Save to integrated updates
+        // Save to integrated updates with integrated_at timestamp
         const { integratedUpdates = [] } = await chrome.storage.local.get(['integratedUpdates']);
+        update.integrated_at = new Date().toISOString();
         integratedUpdates.push(update);
         await chrome.storage.local.set({ integratedUpdates });
 
@@ -689,9 +731,6 @@ async function showCollectivePanel() {
         updateCollectiveBadge();
       });
 
-      card.appendChild(level);
-      card.appendChild(convergence);
-      card.appendChild(desc);
       if (update.curator_note) {
         const note = document.createElement('div');
         note.className = 'update-note';
@@ -703,8 +742,25 @@ async function showCollectivePanel() {
     });
   }
 
-  // Integrated updates section (with refutation)
-  const { integratedUpdates = [] } = await chrome.storage.local.get(['integratedUpdates']);
+  // Integrated updates section (with refutation + deprecation + feedback)
+  const [
+    { integratedUpdates = [] },
+    { deprecatedUpdates = [] },
+    { feedbackGiven = {} }
+  ] = await Promise.all([
+    chrome.storage.local.get(['integratedUpdates']),
+    chrome.storage.local.get(['deprecatedUpdates']),
+    chrome.storage.local.get(['feedbackGiven'])
+  ]);
+
+  // Check feedback due
+  let feedbackDue = [];
+  try {
+    const fdRes = await chrome.runtime.sendMessage({ type: 'checkFeedbackDue' });
+    feedbackDue = fdRes.due || [];
+  } catch (e) {}
+  const feedbackDueIds = new Set(feedbackDue.map(u => u.id));
+
   if (integratedUpdates.length > 0) {
     let refutationCounts = {};
     try {
@@ -718,12 +774,20 @@ async function showCollectivePanel() {
     collectiveContent.appendChild(intHeader);
 
     integratedUpdates.forEach(update => {
+      const isDeprecated = deprecatedUpdates.includes(update.id);
       const card = document.createElement('div');
-      card.className = 'update-card integrated';
+      card.className = 'update-card integrated' + (isDeprecated ? ' deprecated' : '');
 
       const level = document.createElement('div');
       level.className = 'update-level';
       level.textContent = update.level_combo;
+
+      if (isDeprecated) {
+        const badge = document.createElement('span');
+        badge.className = 'deprecated-badge';
+        badge.textContent = 'REFUTADO';
+        level.appendChild(badge);
+      }
 
       const meta = document.createElement('div');
       meta.className = 'update-convergence';
@@ -746,6 +810,42 @@ async function showCollectivePanel() {
         note.className = 'update-note';
         note.textContent = update.curator_note;
         card.appendChild(note);
+      }
+
+      // Feedback prompt (7+ days after integration)
+      if (feedbackDueIds.has(update.id) && feedbackGiven[update.id] === undefined) {
+        const feedbackRow = document.createElement('div');
+        feedbackRow.className = 'feedback-row';
+        feedbackRow.innerHTML = '<span class="feedback-prompt">Ha sido util?</span>';
+
+        const yesBtn = document.createElement('button');
+        yesBtn.className = 'feedback-btn feedback-yes';
+        yesBtn.textContent = 'Si';
+        yesBtn.addEventListener('click', async () => {
+          yesBtn.disabled = true;
+          noBtn.disabled = true;
+          await chrome.runtime.sendMessage({ type: 'submitFeedback', updateId: update.id, useful: true });
+          feedbackRow.innerHTML = '<span class="feedback-given">Gracias por el feedback</span>';
+        });
+
+        const noBtn = document.createElement('button');
+        noBtn.className = 'feedback-btn feedback-no';
+        noBtn.textContent = 'No';
+        noBtn.addEventListener('click', async () => {
+          yesBtn.disabled = true;
+          noBtn.disabled = true;
+          await chrome.runtime.sendMessage({ type: 'submitFeedback', updateId: update.id, useful: false });
+          feedbackRow.innerHTML = '<span class="feedback-given">Gracias por el feedback</span>';
+        });
+
+        feedbackRow.appendChild(yesBtn);
+        feedbackRow.appendChild(noBtn);
+        card.appendChild(feedbackRow);
+      } else if (feedbackGiven[update.id] !== undefined) {
+        const given = document.createElement('div');
+        given.className = 'feedback-given';
+        given.textContent = feedbackGiven[update.id] ? 'Feedback: util' : 'Feedback: no util';
+        card.appendChild(given);
       }
 
       const refuteBtn = document.createElement('button');
@@ -774,6 +874,33 @@ async function showCollectivePanel() {
       collectiveContent.appendChild(card);
     });
   }
+
+  // Fronteras section (Mejora 4 — gap suggestions)
+  try {
+    const gapsRes = await chrome.runtime.sendMessage({ type: 'getSuggestedGaps' });
+    const gaps = gapsRes.gaps || [];
+    if (gaps.length > 0) {
+      const gapHeader = document.createElement('div');
+      gapHeader.className = 'section-header';
+      gapHeader.textContent = 'Fronteras (' + gaps.length + ')';
+      collectiveContent.appendChild(gapHeader);
+
+      const gapInfo = document.createElement('p');
+      gapInfo.className = 'collective-info';
+      gapInfo.textContent = 'Pares de niveles que has explorado por separado pero nadie ha conectado aun.';
+      collectiveContent.appendChild(gapInfo);
+
+      gaps.forEach(g => {
+        const card = document.createElement('div');
+        card.className = 'gap-suggestion';
+        card.innerHTML = `
+          <div class="gap-levels">${g.level_a} + ${g.level_b}</div>
+          <div class="gap-prompt">Has explorado ${g.level_a} y ${g.level_b} por separado. Que relacion hay entre ellos?</div>
+        `;
+        collectiveContent.appendChild(card);
+      });
+    }
+  } catch (e) {}
 
   chatContainer.style.display = 'none';
   inputArea.style.display = 'none';

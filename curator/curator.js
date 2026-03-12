@@ -195,6 +195,43 @@ class CuratorClient {
   }
 }
 
+// Quality signal functions (Mejora 1)
+function computeDescriptionSimilarity(descriptions) {
+  const wordSets = descriptions.map(d =>
+    new Set(d.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(w => w.length > 2))
+  );
+  let totalSim = 0;
+  let pairs = 0;
+  for (let i = 0; i < wordSets.length; i++) {
+    for (let j = i + 1; j < wordSets.length; j++) {
+      const intersection = [...wordSets[i]].filter(w => wordSets[j].has(w)).length;
+      const union = new Set([...wordSets[i], ...wordSets[j]]).size;
+      totalSim += union > 0 ? intersection / union : 0;
+      pairs++;
+    }
+  }
+  return pairs > 0 ? totalSim / pairs : 1;
+}
+
+function computeQualitySignal(r) {
+  const descCount = r.description_count || (r.descriptions ? r.descriptions.length : 1);
+  const stddev = r.c_stddev !== undefined ? parseFloat(r.c_stddev) : 0;
+
+  if (descCount === 1 && stddev < 0.05) {
+    return { color: 'green', label: 'Consenso fuerte', warning: null };
+  }
+  if (stddev >= 0.2 || descCount >= 4) {
+    return { color: 'red', label: 'Revisar con cuidado', warning: 'Multiples perspectivas divergentes — revisar cada descripcion' };
+  }
+  if (descCount >= 2 || stddev >= 0.05) {
+    const similarity = r.descriptions && r.descriptions.length >= 2
+      ? computeDescriptionSimilarity(r.descriptions) : 1;
+    const warn = similarity < 0.3 ? 'Descripciones con baja superposicion — posible desacuerdo' : null;
+    return { color: 'yellow', label: 'Acuerdo parcial', warning: warn };
+  }
+  return { color: 'green', label: 'Consenso', warning: null };
+}
+
 // DOM
 const connectBtn = document.getElementById('connectBtn');
 const detectBtn = document.getElementById('detectBtn');
@@ -251,6 +288,7 @@ connectBtn.addEventListener('click', async () => {
 
     loadApproved();
     loadRefutations();
+    loadFeedback();
   } catch (err) {
     connectionStatus.textContent = 'Error: ' + err.message;
     connectionStatus.className = 'status error';
@@ -276,9 +314,16 @@ detectBtn.addEventListener('click', async () => {
       const card = document.createElement('div');
       card.className = 'convergence-card';
 
+      const signal = computeQualitySignal(r);
+      card.classList.add('quality-' + signal.color);
+
       const header = document.createElement('div');
       header.className = 'conv-header';
       header.innerHTML = `<span class="conv-level">${r.level_combo}</span><span class="conv-count">${r.unique_users} usuarios</span>`;
+
+      const qualityBadge = document.createElement('div');
+      qualityBadge.className = 'quality-badge quality-' + signal.color;
+      qualityBadge.textContent = signal.label;
 
       const cValues = document.createElement('div');
       cValues.className = 'conv-c';
@@ -357,7 +402,14 @@ detectBtn.addEventListener('click', async () => {
       form.appendChild(actions);
 
       card.appendChild(header);
+      card.appendChild(qualityBadge);
       card.appendChild(cValues);
+      if (signal.warning) {
+        const warning = document.createElement('div');
+        warning.className = 'quality-warning';
+        warning.textContent = signal.warning;
+        card.appendChild(warning);
+      }
       card.appendChild(descs);
       card.appendChild(form);
       list.appendChild(card);
@@ -380,11 +432,13 @@ async function loadApproved() {
     updates.forEach(u => {
       const card = document.createElement('div');
       card.className = 'approved-card';
+      const isAuto = u.curator_note && u.curator_note.includes('Auto-aprobado');
+      if (isAuto) card.classList.add('auto-approved');
       const date = new Date(u.published_at).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
       card.innerHTML = `
         <div class="approved-header">
           <span class="approved-level">${u.level_combo}</span>
-          <span class="approved-version">v${u.version}</span>
+          <span class="approved-version">v${u.version}${isAuto ? ' · AUTO' : ''}</span>
         </div>
         <p class="approved-desc">${u.description}</p>
         <div class="approved-meta">${u.convergence_count} usuarios · ${date}</div>
@@ -538,6 +592,26 @@ async function loadRefutations() {
         </div>
         <p class="refutation-desc">${update ? update.description : 'Update no encontrado'}</p>
       `;
+
+      if (c.refutation_count >= 3 && update) {
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-update-btn';
+        removeBtn.textContent = 'Remover update';
+        removeBtn.addEventListener('click', async () => {
+          removeBtn.disabled = true;
+          removeBtn.textContent = 'Removiendo...';
+          try {
+            await client._fetch(`/system_updates?id=eq.${update.id}`, { method: 'DELETE' });
+            card.style.opacity = '0.3';
+            removeBtn.textContent = 'Removido';
+            loadApproved();
+          } catch (err) {
+            removeBtn.textContent = 'Error: ' + err.message;
+          }
+        });
+        card.appendChild(removeBtn);
+      }
+
       list.appendChild(card);
     });
   } catch (err) {
@@ -613,6 +687,74 @@ document.getElementById('seedFileInput').addEventListener('change', async (e) =>
 
   e.target.value = '';
 });
+
+// Feedback loader (Mejora 5)
+async function loadFeedback() {
+  if (!client) return;
+  const feedbackSection = document.getElementById('feedbackSection');
+  const list = document.getElementById('feedbackList');
+  if (!feedbackSection || !list) return;
+
+  feedbackSection.style.display = 'block';
+
+  try {
+    const summary = await client.getFeedbackSummary();
+    list.innerHTML = '';
+
+    if (!summary || summary.length === 0) {
+      list.innerHTML = '<p class="empty">No hay feedback registrado aun.</p>';
+      return;
+    }
+
+    const updates = await client.getApprovedUpdates();
+    const updateMap = {};
+    (updates || []).forEach(u => { updateMap[u.id] = u; });
+
+    summary.forEach(f => {
+      const update = updateMap[f.update_id];
+      const card = document.createElement('div');
+      card.className = 'feedback-card';
+      const ratio = f.usefulness_ratio !== null ? (f.usefulness_ratio * 100).toFixed(0) + '%' : 'N/A';
+      card.innerHTML = `
+        <div class="feedback-header">
+          <span class="feedback-level">${update ? update.level_combo : f.update_id.substring(0,8)}</span>
+          <span class="feedback-ratio">${ratio} util</span>
+        </div>
+        <p class="feedback-desc">${update ? update.description : 'Update no encontrado'}</p>
+        <div class="feedback-meta">${f.total_feedback} respuestas · ${f.useful_count} util · ${f.not_useful_count} no util</div>
+      `;
+      list.appendChild(card);
+    });
+  } catch (err) {
+    list.innerHTML = '<p class="error">Error: ' + err.message + '</p>';
+  }
+}
+
+// Auto-approve handler (Mejora 6)
+const autoApproveBtn = document.getElementById('autoApproveBtn');
+if (autoApproveBtn) {
+  autoApproveBtn.addEventListener('click', async () => {
+    if (!client) return;
+    autoApproveBtn.disabled = true;
+    autoApproveBtn.textContent = 'Ejecutando...';
+    try {
+      const result = await client.rpc('auto_approve_convergent');
+      const count = typeof result === 'number' ? result : 0;
+      autoApproveBtn.textContent = count + ' auto-aprobadas';
+      if (count > 0) loadApproved();
+      setTimeout(() => {
+        autoApproveBtn.textContent = 'Auto-aprobar';
+        autoApproveBtn.disabled = false;
+      }, 3000);
+    } catch (err) {
+      autoApproveBtn.textContent = 'Error';
+      setTimeout(() => {
+        autoApproveBtn.textContent = 'Auto-aprobar';
+        autoApproveBtn.disabled = false;
+      }, 3000);
+    }
+  });
+}
 
 // Auto-connect if saved
 if (savedUrl && savedKey) {

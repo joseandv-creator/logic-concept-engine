@@ -35,6 +35,7 @@
           <label>Umbral:</label>
           <input type="number" id="threshold" value="3" min="1" max="100">
           <button id="detectBtn">Detectar</button>
+          <button id="autoApproveBtn" class="auto-approve-btn">Auto-aprobar</button>
         </div>
       </div>
       <div id="convergenceList"></div>
@@ -75,6 +76,11 @@
     <section id="refutationsSection" style="display:none;">
       <h2>Refutaciones</h2>
       <div id="refutationsList"></div>
+    </section>
+
+    <section id="feedbackSection" style="display:none;">
+      <h2>Feedback de Usuarios</h2>
+      <div id="feedbackList"></div>
     </section>
 
     <section id="seedSection" style="display:none;">

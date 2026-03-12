@@ -804,6 +804,139 @@ textarea::placeholder {
   opacity: 0.6;
 }
 
+/* Deprecated updates (Mejora 2) */
+.update-card.deprecated {
+  opacity: 0.5;
+  border-left-color: var(--error);
+}
+
+.update-card.deprecated .update-description {
+  text-decoration: line-through;
+}
+
+.deprecated-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  background: rgba(239,68,68,0.15);
+  color: var(--error);
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* Bulk integrate button */
+.bulk-integrate-btn {
+  width: 100%;
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--success);
+  background: rgba(34,197,94,0.1);
+  color: var(--success);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.bulk-integrate-btn:hover {
+  background: rgba(34,197,94,0.2);
+}
+
+.bulk-integrate-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Update perspectives */
+.update-perspectives {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+/* Gap suggestions / Fronteras (Mejora 4) */
+.gap-suggestion {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.gap-levels {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.gap-prompt {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Feedback (Mejora 5) */
+.feedback-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.feedback-prompt {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.feedback-btn {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: transparent;
+  font-weight: 500;
+}
+
+.feedback-btn.feedback-yes {
+  color: var(--success);
+  border-color: var(--success);
+}
+
+.feedback-btn.feedback-yes:hover {
+  background: rgba(34,197,94,0.1);
+}
+
+.feedback-btn.feedback-no {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+.feedback-btn.feedback-no:hover {
+  background: rgba(239,68,68,0.1);
+}
+
+.feedback-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.feedback-given {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 6px;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

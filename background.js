@@ -14,8 +14,10 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'checkCollectiveUpdates') {
+    runAutoApproval();
     checkForUpdates();
-    downloadSnapshot();
+    downloadSnapshot().then(() => computeSuggestedGaps());
+    checkForDeprecated();
   }
 });
 
@@ -114,6 +116,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     importFullExport(message.data).then(sendResponse);
     return true;
   }
+  if (message.type === 'getDeprecatedUpdates') {
+    checkForDeprecated().then(sendResponse);
+    return true;
+  }
+  if (message.type === 'getSuggestedGaps') {
+    computeSuggestedGaps().then(gaps => sendResponse({ gaps }));
+    return true;
+  }
+  if (message.type === 'submitFeedback') {
+    submitFeedback(message.updateId, message.useful).then(sendResponse);
+    return true;
+  }
+  if (message.type === 'checkFeedbackDue') {
+    checkFeedbackDue().then(due => sendResponse({ due }));
+    return true;
+  }
+  if (message.type === 'runAutoApproval') {
+    runAutoApproval().then(sendResponse);
+    return true;
+  }
 });
 
 async function getApiKey() {
@@ -142,13 +164,35 @@ async function handleChat(messages, modelOverride) {
     systemPrompt += `\n\n---\n\n## CORRECCIONES DEL OPERADOR\n\nEl operador (S1) ha registrado las siguientes correcciones a partir de errores previos. Integralas en tu razonamiento — son territorio verificado:\n\n${correctionLines}`;
   }
 
-  // Inject collective knowledge
-  const { integratedUpdates = [] } = await chrome.storage.local.get(['integratedUpdates']);
-  if (integratedUpdates.length > 0) {
-    const updateLines = integratedUpdates.map((u, i) =>
-      `${i + 1}. [${u.level_combo}] ${u.description} (convergencia: ${u.convergence_count} usuarios)`
-    ).join('\n');
-    systemPrompt += `\n\n---\n\n## CONOCIMIENTO COLECTIVO VERIFICADO\n\nLas siguientes relaciones han sido descubiertas independientemente por multiples usuarios y verificadas por S1:\n\n${updateLines}`;
+  // Inject collective knowledge — structured by category, filtered for deprecated
+  const { integratedUpdates = [], deprecatedUpdates = [] } = await chrome.storage.local.get([
+    'integratedUpdates', 'deprecatedUpdates'
+  ]);
+  const activeUpdates = integratedUpdates.filter(u => !deprecatedUpdates.includes(u.id));
+  if (activeUpdates.length > 0) {
+    const grouped = {};
+    activeUpdates.forEach(u => {
+      const firstLevel = u.level_combo.split('+')[0];
+      const category = firstLevel.replace(/\d+/g, '');
+      if (!grouped[category]) grouped[category] = [];
+      grouped[category].push(u);
+    });
+
+    let updateBlock = '';
+    Object.keys(grouped).sort().forEach(cat => {
+      updateBlock += `\n### Nivel ${cat}\n`;
+      grouped[cat].forEach((u, i) => {
+        const strength = u.convergence_count >= 5 ? 'fuerte' :
+                         u.convergence_count >= 3 ? 'moderada' : 'inicial';
+        let line = `${i + 1}. [${u.level_combo}] ${u.description} (convergencia ${strength}: ${u.convergence_count} usuarios)`;
+        if (u.descriptions && u.descriptions.length > 1) {
+          line += `\n   Perspectivas: ${u.descriptions.join(' | ')}`;
+        }
+        updateBlock += line + '\n';
+      });
+    });
+
+    systemPrompt += `\n\n---\n\n## CONOCIMIENTO COLECTIVO VERIFICADO\n\nLas siguientes relaciones han sido descubiertas independientemente por multiples usuarios y verificadas por S1:\n${updateBlock}`;
   }
 
   try {
