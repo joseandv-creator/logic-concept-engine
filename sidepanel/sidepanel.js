@@ -216,7 +216,8 @@ function addUserMessage(text, hasPageContext) {
 }
 
 function addAssistantMessage(text) {
-  const { cleanText, insight } = extractInsight(text);
+  const { cleanText: afterInsight, insight } = extractInsight(text);
+  const { cleanText, concept } = extractConcept(afterInsight);
 
   const div = document.createElement('div');
   div.className = 'message message-assistant';
@@ -229,7 +230,8 @@ function addAssistantMessage(text) {
     // Summary (always visible, compact)
     const summary = document.createElement('div');
     summary.className = 'insight-summary';
-    summary.innerHTML = `<span class="insight-dot"></span><span class="insight-summary-text">Insight: ${escapeHtml(insight.level)}</span><span class="insight-expand-arrow">\u25B8</span>`;
+    const displayLevel = insight.level_human || insight.level;
+    summary.innerHTML = `<span class="insight-dot"></span><span class="insight-summary-text">Insight: ${escapeHtml(displayLevel)}</span><span class="insight-expand-arrow">\u25B8</span>`;
     summary.addEventListener('click', () => {
       notif.classList.toggle('expanded');
     });
@@ -321,6 +323,106 @@ function addAssistantMessage(text) {
     div.appendChild(notif);
   }
 
+  if (concept) {
+    const cNotif = document.createElement('div');
+    cNotif.className = 'concept-notification';
+
+    const cSummary = document.createElement('div');
+    cSummary.className = 'concept-summary';
+    cSummary.innerHTML = `<span class="concept-dot"></span><span class="concept-summary-text">${escapeHtml(concept.term)}</span><span class="concept-expand-arrow">\u25B8</span>`;
+    cSummary.addEventListener('click', () => {
+      cNotif.classList.toggle('expanded');
+    });
+
+    const cDetails = document.createElement('div');
+    cDetails.className = 'concept-details';
+
+    const mapLine = document.createElement('div');
+    mapLine.className = 'concept-field';
+    mapLine.innerHTML = `<span class="concept-label">Mapa:</span> ${escapeHtml(concept.map)}`;
+
+    const terrLine = document.createElement('div');
+    terrLine.className = 'concept-field';
+    terrLine.innerHTML = `<span class="concept-label">Territorio:</span> ${escapeHtml(concept.territory)}`;
+
+    const testedLine = document.createElement('div');
+    testedLine.className = 'concept-field concept-tested';
+    testedLine.textContent = 'Verificado en: ' + concept.tested.join(', ');
+
+    const cScore = document.createElement('div');
+    cScore.className = 'concept-field';
+    cScore.style.cssText = 'font-size:11px; color: var(--text-muted); margin-top:4px;';
+    cScore.textContent = 'C = ' + concept.c;
+
+    const cBtnRow = document.createElement('div');
+    cBtnRow.style.cssText = 'display:flex;gap:6px;margin-top:8px;';
+
+    const acceptBtn = document.createElement('button');
+    acceptBtn.textContent = 'Aceptar';
+    acceptBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      acceptBtn.disabled = true;
+      const response = await chrome.runtime.sendMessage({
+        type: 'saveConcept',
+        concept: concept
+      });
+      if (response.success) {
+        showToast('Concepto guardado', 'success');
+        acceptBtn.textContent = 'Guardado';
+        acceptBtn.style.background = 'var(--concept)';
+      }
+    });
+
+    const shareConceptBtn = document.createElement('button');
+    shareConceptBtn.textContent = 'Compartir';
+    shareConceptBtn.className = 'share-btn';
+    shareConceptBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const statusRes = await chrome.runtime.sendMessage({ type: 'getCollectiveStatus' });
+      if (!statusRes.enabled) {
+        showToast('Activa la red en Configuracion', 'info');
+        return;
+      }
+      shareConceptBtn.disabled = true;
+      const conceptAsInsight = {
+        level: 'CONCEPT',
+        level_human: concept.term,
+        description: 'Mapa: ' + concept.map + ' | Territorio: ' + concept.territory,
+        c_before: 0,
+        c_after: concept.c,
+        why: 'Verificado en: ' + concept.tested.join(', ')
+      };
+      const response = await chrome.runtime.sendMessage({
+        type: 'shareRelation',
+        insight: conceptAsInsight
+      });
+      if (response.success) {
+        showToast('Concepto compartido', 'success');
+        shareConceptBtn.textContent = 'Compartido';
+        shareConceptBtn.style.borderColor = 'var(--success)';
+        shareConceptBtn.style.color = 'var(--success)';
+      } else if (response.error === 'ALREADY_SHARED') {
+        showToast('Ya compartido', 'info');
+        shareConceptBtn.textContent = 'Ya compartido';
+      } else {
+        showToast('Error al compartir', 'error');
+        shareConceptBtn.disabled = false;
+      }
+    });
+
+    cBtnRow.appendChild(acceptBtn);
+    cBtnRow.appendChild(shareConceptBtn);
+    cDetails.appendChild(mapLine);
+    cDetails.appendChild(terrLine);
+    cDetails.appendChild(testedLine);
+    cDetails.appendChild(cScore);
+    cDetails.appendChild(cBtnRow);
+
+    cNotif.appendChild(cSummary);
+    cNotif.appendChild(cDetails);
+    div.appendChild(cNotif);
+  }
+
   messagesEl.appendChild(div);
   updateWelcomeState();
   scrollToBottom();
@@ -383,6 +485,29 @@ function extractInsight(text) {
   }
 }
 
+// === CONCEPT EXTRACTION ===
+
+function extractConcept(text) {
+  const conceptRegex = /```CONCEPT\s*\n([\s\S]*?)```/;
+  const match = text.match(conceptRegex);
+
+  if (!match) return { cleanText: text, concept: null };
+
+  const cleanText = text.replace(conceptRegex, '').trim();
+
+  try {
+    const raw = JSON.parse(match[1].trim());
+    const validation = validateConcept(raw);
+    if (!validation.valid) {
+      console.warn('Concept rejected by validation:', validation.errors);
+      return { cleanText, concept: null };
+    }
+    return { cleanText, concept: validation.cleaned };
+  } catch (e) {
+    return { cleanText: text, concept: null };
+  }
+}
+
 // === BADGES ===
 
 async function updateInsightsBadge() {
@@ -413,14 +538,78 @@ async function updateCollectiveBadge() {
 // === INSIGHTS PANEL ===
 
 async function showInsightsPanel() {
-  const [insightsRes, correctionsRes] = await Promise.all([
+  const [insightsRes, correctionsRes, conceptsRes] = await Promise.all([
     chrome.runtime.sendMessage({ type: 'getInsights' }),
-    chrome.runtime.sendMessage({ type: 'getCorrections' })
+    chrome.runtime.sendMessage({ type: 'getCorrections' }),
+    chrome.runtime.sendMessage({ type: 'getConcepts' })
   ]);
   const insights = insightsRes.insights || [];
   const corrections = correctionsRes.corrections || [];
+  const concepts = conceptsRes.concepts || [];
 
   insightsList.innerHTML = '';
+
+  // Concepts section (landmarks first)
+  const conceptsHeader = document.createElement('div');
+  conceptsHeader.className = 'section-header';
+  conceptsHeader.textContent = 'Conceptos (' + concepts.length + ')';
+  insightsList.appendChild(conceptsHeader);
+
+  // Seed button
+  const seedBtn = document.createElement('button');
+  seedBtn.className = 'seed-concepts-btn';
+  seedBtn.textContent = concepts.length === 0 ? 'Cargar conceptos TCOL' : 'Recargar TCOL';
+  seedBtn.addEventListener('click', async () => {
+    seedBtn.disabled = true;
+    seedBtn.textContent = 'Cargando...';
+    const res = await chrome.runtime.sendMessage({ type: 'seedConcepts' });
+    if (res.success) {
+      showToast(res.added + ' conceptos cargados (' + res.total + ' total)', 'success');
+      showInsightsPanel();
+    } else {
+      showToast('Error al cargar conceptos', 'error');
+      seedBtn.disabled = false;
+    }
+  });
+  insightsList.appendChild(seedBtn);
+
+  if (concepts.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'empty-insights';
+    empty.textContent = 'No hay conceptos verificados aun. Carga los conceptos de TCOL o espera a que Logic identifique nuevos.';
+    insightsList.appendChild(empty);
+  } else {
+    concepts.forEach((concept, index) => {
+      const card = document.createElement('div');
+      card.className = 'concept-card';
+
+      const date = new Date(concept.date);
+      const dateStr = date.toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
+
+      card.innerHTML = `
+        <div class="concept-term">${escapeHtml(concept.term)}</div>
+        <div class="concept-map-territory">
+          <div class="concept-field"><span class="concept-label">Mapa:</span> ${escapeHtml(concept.map)}</div>
+          <div class="concept-field"><span class="concept-label">Territorio:</span> ${escapeHtml(concept.territory)}</div>
+        </div>
+        <div class="concept-tested">Verificado en: ${escapeHtml(concept.tested.join(', '))}</div>
+        <div class="insight-c">C = ${concept.c}</div>
+        <div class="insight-date">${dateStr}</div>
+        <div class="insight-actions"></div>
+      `;
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-insight';
+      deleteBtn.textContent = 'Eliminar';
+      deleteBtn.addEventListener('click', async () => {
+        await chrome.runtime.sendMessage({ type: 'deleteConcept', index });
+        showInsightsPanel();
+      });
+      card.querySelector('.insight-actions').appendChild(deleteBtn);
+
+      insightsList.appendChild(card);
+    });
+  }
 
   // Insights section
   const insightsHeader = document.createElement('div');
@@ -442,7 +631,7 @@ async function showInsightsPanel() {
       const dateStr = date.toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
       card.innerHTML = `
-        <div class="insight-level">${escapeHtml(insight.level)}</div>
+        <div class="insight-level">${escapeHtml(insight.level_human || insight.level)}</div>
         <div class="insight-description">${escapeHtml(insight.description)}</div>
         <div class="insight-c">C: ${escapeHtml(String(insight.c_before))} \u2192 ${escapeHtml(String(insight.c_after))}</div>
         <div class="insight-why">${escapeHtml(insight.why)}</div>
@@ -514,6 +703,139 @@ async function showInsightsPanel() {
 }
 
 // === COLLECTIVE PANEL ===
+
+function renderDetectionToolkit(container) {
+  const toolkit = [
+    {
+      title: 'Mecanismos de engano',
+      color: 'var(--concept)',
+      items: [
+        { name: 'Redefinicion', desc: 'Robar un concepto — reemplazar el significado sin que nadie lo note. Mecanismo maestro.' },
+        { name: 'Omision', desc: 'Esconder un eslabon causal — quitar el paso que cambiaria la conclusion.' },
+        { name: 'Falsa equivalencia', desc: 'Igualar cosas diferentes — "ambos lados" cuando uno tiene evidencia y el otro no.' },
+        { name: 'Sustitucion emocional', desc: 'Reemplazar argumento con sentimiento — indignacion, miedo, culpa.' },
+        { name: 'Apelacion a autoridad', desc: 'Reemplazar evidencia con estatus — "los expertos dicen" sin nombrar evidencia.' },
+        { name: 'Cambio de alcance', desc: 'Responder una pregunta diferente a la que se hizo.' },
+        { name: 'Falsa dicotomia', desc: 'Presentar dos opciones cuando existen mas.' },
+        { name: 'Inversion', desc: 'Presentar causa como efecto o efecto como causa.' }
+      ]
+    },
+    {
+      title: 'Falacias logicas',
+      color: 'var(--purple, #a78bfa)',
+      items: [
+        { name: 'Ad hominem', desc: 'Atacar a la persona, no al argumento.' },
+        { name: 'Strawman', desc: 'Distorsionar la posicion y atacar la distorsion.' },
+        { name: 'Razonamiento circular', desc: 'La conclusion esta escondida en la premisa.' },
+        { name: 'Generalizacion apresurada', desc: 'Un caso = regla universal.' },
+        { name: 'Pendiente resbaladiza', desc: 'A lleva a Z sin probar B hasta Y.' },
+        { name: 'Post hoc', desc: 'Despues de = a causa de.' },
+        { name: 'Apelacion a tradicion', desc: 'Es viejo = es correcto.' },
+        { name: 'Apelacion a novedad', desc: 'Es nuevo = es mejor.' },
+        { name: 'Composicion', desc: 'La parte tiene X = el todo tiene X.' },
+        { name: 'Division', desc: 'El todo tiene X = cada parte tiene X.' },
+        { name: 'Tu quoque', desc: 'Tu tambien lo haces = no esta mal.' },
+        { name: 'Peticion de principio', desc: 'Asumir lo que necesita probar.' }
+      ]
+    },
+    {
+      title: 'Incentivos humanos',
+      color: 'var(--accent)',
+      items: [
+        { name: 'Preferencia revelada > declarada', desc: 'Observa lo que hacen, no lo que dicen.' },
+        { name: 'Aversion a la perdida 2x', desc: 'Luchan mas por conservar que por ganar.' },
+        { name: 'Problema de agencia', desc: 'Quien decide no carga las consecuencias.' },
+        { name: 'Skin in the game', desc: 'Sin riesgo = sin confianza.' },
+        { name: 'Asimetria de informacion', desc: 'Quien sabe lo que tu no = poder.' },
+        { name: 'Preferencia temporal', desc: 'Ganancia corta vs costo largo — la mayoria del engano explota esto.' },
+        { name: 'Posicion relativa', desc: 'La gente compara, no mide.' },
+        { name: 'Falacia narrativa', desc: 'La historia reemplaza la evidencia.' },
+        { name: 'Cooperacion en juegos repetidos', desc: 'Una sola vez = explotar.' }
+      ]
+    },
+    {
+      title: 'Incentivos economicos',
+      color: 'var(--accent)',
+      items: [
+        { name: 'Quien paga? Quien gana?', desc: 'La estructura de beneficiarios revela el proposito real.' },
+        { name: 'Beneficios concentrados + costos dispersos', desc: 'La politica pasa sin resistencia.' },
+        { name: 'Captura regulatoria', desc: 'Los regulados escriben las reglas.' },
+        { name: 'Riesgo moral', desc: 'Asegurado de consecuencias = comportamiento imprudente.' },
+        { name: 'Externalidades', desc: 'Costos empujados a quienes no pueden rechazar.' },
+        { name: '"Gratis" = tu eres el producto', desc: 'Si no pagas, alguien paga por ti con tus datos.' },
+        { name: 'Precio vs narrativa', desc: 'El mercado dice una cosa, el vocero otra — confia en el precio.' }
+      ]
+    },
+    {
+      title: 'Cadenas causales ocultas',
+      color: '#60a5fa',
+      items: [
+        { name: 'Causa-efecto con retraso', desc: 'El espacio temporal esconde el enlace.' },
+        { name: 'Pocas causas, muchos efectos', desc: 'Encuentra el punto de apalancamiento.' },
+        { name: 'Fuerzas constantes > esporadicas', desc: 'Habitos > heroismo.' },
+        { name: 'Efectos de segundo orden', desc: 'La consecuencia de la consecuencia — donde vive la sorpresa.' },
+        { name: 'Loops de retroalimentacion', desc: 'Positivo = acelerando. Negativo = estabilizando.' },
+        { name: 'Transiciones de umbral', desc: 'Nada pasa, nada pasa, luego todo cambia.' },
+        { name: 'Eslabones perdidos/falsos/invertidos', desc: 'Los tres mecanismos de engano causal.' }
+      ]
+    },
+    {
+      title: 'Reglas del territorio',
+      color: 'var(--success, #4ade80)',
+      items: [
+        { name: 'Nada de la nada', desc: 'Creacion requiere transformacion.' },
+        { name: 'El orden cuesta energia', desc: 'Mantener estructura no es gratis.' },
+        { name: 'La entropia aumenta por defecto', desc: 'Sin esfuerzo activo, todo se degrada.' },
+        { name: 'Los extremos regresan a la media', desc: 'Rendimientos extraordinarios se normalizan.' },
+        { name: 'Algunas transformaciones son irreversibles', desc: 'No todo se puede deshacer.' },
+        { name: 'La informacion tiene costo', desc: 'Saber no es gratis.' },
+        { name: 'Emergencia', desc: 'El todo tiene propiedades que las partes no.' }
+      ]
+    }
+  ];
+
+  toolkit.forEach(section => {
+    const header = document.createElement('div');
+    header.className = 'section-header toolkit-header';
+    header.style.cursor = 'pointer';
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+    header.innerHTML = escapeHtml(section.title) + ' (' + section.items.length + ') <span class="toolkit-toggle" style="font-size:10px;color:var(--text-tertiary);">&#9660;</span>';
+
+    const itemsContainer = document.createElement('div');
+    itemsContainer.className = 'toolkit-items';
+    itemsContainer.style.display = 'none';
+
+    let expanded = false;
+    header.addEventListener('click', () => {
+      expanded = !expanded;
+      itemsContainer.style.display = expanded ? 'block' : 'none';
+      header.querySelector('.toolkit-toggle').innerHTML = expanded ? '&#9650;' : '&#9660;';
+    });
+
+    section.items.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'toolkit-card';
+      card.style.cssText = 'padding:8px 12px;border-left:2px solid ' + section.color + ';margin-bottom:4px;background:var(--bg-secondary);border-radius:0 6px 6px 0;';
+
+      const name = document.createElement('div');
+      name.style.cssText = 'font-size:12px;font-weight:600;color:' + section.color + ';margin-bottom:2px;';
+      name.textContent = item.name;
+
+      const desc = document.createElement('div');
+      desc.style.cssText = 'font-size:11px;color:var(--text-tertiary);line-height:1.5;';
+      desc.textContent = item.desc;
+
+      card.appendChild(name);
+      card.appendChild(desc);
+      itemsContainer.appendChild(card);
+    });
+
+    container.appendChild(header);
+    container.appendChild(itemsContainer);
+  });
+}
 
 async function showCollectivePanel() {
   const [statusRes, updatesRes] = await Promise.all([
@@ -788,6 +1110,53 @@ async function showCollectivePanel() {
       collectiveContent.appendChild(card);
     });
   }
+
+  // Conceptos verificados section
+  try {
+    const conceptsRes = await chrome.runtime.sendMessage({ type: 'getConcepts' });
+    const concepts = conceptsRes.concepts || [];
+    if (concepts.length > 0) {
+      const cHeader = document.createElement('div');
+      cHeader.className = 'section-header';
+      cHeader.textContent = 'Conceptos verificados (' + concepts.length + ')';
+      collectiveContent.appendChild(cHeader);
+
+      concepts.forEach(concept => {
+        const card = document.createElement('div');
+        card.className = 'update-card concept-integrated';
+
+        const term = document.createElement('div');
+        term.className = 'update-level concept-level';
+        term.textContent = concept.term;
+
+        const cValue = document.createElement('span');
+        cValue.className = 'concept-c-badge';
+        cValue.textContent = 'C=' + concept.c;
+        term.appendChild(cValue);
+
+        const mapDiv = document.createElement('div');
+        mapDiv.className = 'concept-map-line';
+        mapDiv.innerHTML = '<span class="concept-label-mini">Mapa:</span> ' + escapeHtml(concept.map);
+
+        const terrDiv = document.createElement('div');
+        terrDiv.className = 'concept-territory-line';
+        terrDiv.innerHTML = '<span class="concept-label-mini">Territorio:</span> ' + escapeHtml(concept.territory);
+
+        const tested = document.createElement('div');
+        tested.className = 'update-convergence';
+        tested.textContent = 'Verificado en: ' + concept.tested.join(' \u00B7 ');
+
+        card.appendChild(term);
+        card.appendChild(mapDiv);
+        card.appendChild(terrDiv);
+        card.appendChild(tested);
+        collectiveContent.appendChild(card);
+      });
+    }
+  } catch (e) {}
+
+  // === DETECTION TOOLKIT — Knowledge base ===
+  renderDetectionToolkit(collectiveContent);
 
   // Fronteras section (gap suggestions)
   try {

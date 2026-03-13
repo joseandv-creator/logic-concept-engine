@@ -1,359 +1,739 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Logic — Concept Engine Protocol</title>
-  <meta name="description" content="A reasoning system that expands your map. Chrome extension operating the Concept Engine protocol via Claude AI.">
+  <title>Logic — Concept Engine</title>
+  <meta name="description" content="Detecta mentiras, conceptos robados e incentivos perversos en el lenguaje. Lo que queda despues de eliminar la distorsion es la verdad.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg: #0a0a0b;
-      --bg2: #141416;
-      --bg3: #1c1c1f;
-      --text: #e4e4e7;
-      --text2: #a1a1aa;
-      --text3: #71717a;
-      --accent: #a78bfa;
-      --accent-dim: #7c3aed;
-      --border: #27272a;
-      --success: #22c55e;
+      --bg: #09090b;
+      --bg2: #0f0f12;
+      --bg3: #18181b;
+      --bg4: #1f1f23;
+      --text: #fafaf9;
+      --text2: #a8a29e;
+      --text3: #78716c;
+      --accent: #d4a574;
+      --accent-dim: #b8956a;
+      --accent-subtle: rgba(212, 165, 116, 0.08);
+      --accent-border: rgba(212, 165, 116, 0.15);
+      --border: rgba(255, 255, 255, 0.06);
+      --border2: rgba(255, 255, 255, 0.1);
+      --concept: #f59e0b;
+      --concept-subtle: rgba(245, 158, 11, 0.08);
+      --concept-border: rgba(245, 158, 11, 0.2);
+      --purple: #a78bfa;
+      --purple-subtle: rgba(167, 139, 250, 0.08);
+      --purple-border: rgba(167, 139, 250, 0.15);
+      --success: #4ade80;
+      --mono: 'JetBrains Mono', 'SF Mono', monospace;
     }
 
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Hero ── */
+    .hero { text-align: center; padding: 100px 0 80px; }
+
+    .logo-mark { width: 64px; height: 64px; margin: 0 auto 32px; }
+    .logo-mark svg { width: 100%; height: 100%; }
+
+    h1 { font-size: 44px; font-weight: 700; letter-spacing: -0.035em; margin-bottom: 16px; line-height: 1.1; }
+    .subtitle { font-size: 18px; color: var(--text2); max-width: 520px; margin: 0 auto 20px; line-height: 1.7; }
+    .tagline { font-family: var(--mono); font-size: 13px; color: var(--accent); letter-spacing: 0.02em; margin-bottom: 44px; }
+
+    .cta-row { display: flex; gap: 12px; justify-content: center; }
+
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; transition: all 0.15s ease; letter-spacing: -0.01em; }
+    .btn-primary { background: var(--text); color: var(--bg); }
+    .btn-primary:hover { background: var(--text2); }
+    .btn-secondary { background: transparent; color: var(--text2); border: 1px solid var(--border2); }
+    .btn-secondary:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+    /* ── Sections ── */
+    section { padding: 80px 0; }
+    .section-border { border-top: 1px solid var(--border); }
+    .section-title { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 12px; }
+    h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.2; }
+
+    /* ── Core thesis ── */
+    .thesis { text-align: center; }
+    .thesis-text { font-size: 17px; color: var(--text2); max-width: 580px; margin: 16px auto 0; line-height: 1.8; }
+    .thesis-text strong { color: var(--text); }
+
+    /* ── Concept cards ── */
+    .concepts-header { text-align: center; margin-bottom: 48px; }
+    .concepts-header p { color: var(--text2); font-size: 15px; margin-top: 12px; max-width: 520px; margin-left: auto; margin-right: auto; line-height: 1.7; }
+
+    .concept-grid { display: flex; flex-direction: column; gap: 2px; }
+
+    .concept-row {
+      display: grid;
+      grid-template-columns: 140px 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+    }
+
+    .concept-row > div { background: var(--bg); padding: 16px 20px; }
+
+    .concept-term-cell {
+      display: flex;
+      align-items: center;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--concept);
+      text-transform: capitalize;
+    }
+
+    .concept-map-cell {
+      font-size: 13px;
+      color: var(--text3);
       line-height: 1.6;
     }
 
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 0 24px;
-    }
-
-    /* Hero */
-    .hero {
-      text-align: center;
-      padding: 80px 0 60px;
-    }
-
-    .logo {
-      width: 80px;
-      height: 80px;
-      background: var(--accent);
-      color: #000;
-      border-radius: 20px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 42px;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      margin-bottom: 24px;
-    }
-
-    h1 {
-      font-size: 48px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      margin-bottom: 16px;
-    }
-
-    .subtitle {
-      font-size: 20px;
-      color: var(--text2);
-      max-width: 560px;
-      margin: 0 auto 40px;
-    }
-
-    .cta-row {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 14px 28px;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all 0.2s;
-    }
-
-    .btn-primary {
-      background: var(--accent);
-      color: #000;
-    }
-
-    .btn-primary:hover {
-      background: var(--accent-dim);
-      color: #fff;
-    }
-
-    .btn-secondary {
-      background: var(--bg3);
+    .concept-territory-cell {
+      font-size: 13px;
       color: var(--text);
-      border: 1px solid var(--border);
+      line-height: 1.6;
     }
 
-    .btn-secondary:hover {
-      border-color: var(--accent);
-    }
-
-    /* Formula */
-    .formula-section {
-      text-align: center;
-      padding: 60px 0;
-      border-top: 1px solid var(--border);
-    }
-
-    .formula {
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--accent);
-      margin-bottom: 24px;
-    }
-
-    .formula-desc {
-      color: var(--text2);
-      font-size: 16px;
-      max-width: 520px;
-      margin: 0 auto;
-    }
-
-    /* Features */
-    .features {
-      padding: 60px 0;
-      border-top: 1px solid var(--border);
-    }
-
-    .features h2 {
-      font-size: 32px;
-      text-align: center;
-      margin-bottom: 40px;
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 20px;
-    }
-
-    .feature {
+    .concept-row-header > div {
       background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 24px;
+      padding: 10px 20px;
     }
 
-    .feature h3 {
-      font-size: 16px;
-      margin-bottom: 8px;
+    .concept-row-header .concept-map-cell,
+    .concept-row-header .concept-territory-cell {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .concept-row-header .concept-map-cell { color: var(--text3); }
+    .concept-row-header .concept-territory-cell { color: var(--concept); }
+    .concept-row-header .concept-term-cell { color: var(--text3); font-size: 11px; font-family: var(--mono); letter-spacing: 0.05em; text-transform: uppercase; }
+
+    .gap-arrow {
+      display: inline-block;
       color: var(--accent);
+      margin: 0 4px;
+      font-family: var(--mono);
     }
 
-    .feature p {
-      font-size: 14px;
-      color: var(--text2);
-    }
-
-    /* How it works */
-    .how {
-      padding: 60px 0;
-      border-top: 1px solid var(--border);
-    }
-
-    .how h2 {
-      font-size: 32px;
+    .concept-count {
       text-align: center;
-      margin-bottom: 40px;
+      margin-top: 24px;
+      font-size: 13px;
+      color: var(--text3);
+      font-family: var(--mono);
     }
 
-    .steps {
+    /* ── Instruments ── */
+    .instruments-header { margin-bottom: 40px; }
+    .instruments-header p { color: var(--text2); font-size: 15px; margin-top: 12px; line-height: 1.7; }
+
+    .instruments {
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      max-width: 560px;
-      margin: 0 auto;
+      gap: 0;
     }
 
-    .step {
+    .instrument {
       display: flex;
       gap: 16px;
       align-items: flex-start;
-    }
-
-    .step-num {
-      width: 32px;
-      height: 32px;
-      min-width: 32px;
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 14px;
-      color: var(--accent);
-    }
-
-    .step p {
-      font-size: 15px;
-      color: var(--text2);
-      padding-top: 4px;
-    }
-
-    /* Principles */
-    .principles {
-      padding: 60px 0;
-      border-top: 1px solid var(--border);
-      text-align: center;
-    }
-
-    .principles h2 {
-      font-size: 32px;
-      margin-bottom: 16px;
-    }
-
-    .principles-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      max-width: 480px;
-      margin: 24px auto 0;
-      text-align: left;
-    }
-
-    .principle {
-      font-size: 15px;
-      color: var(--text2);
-      padding: 8px 0;
+      padding: 20px 0;
       border-bottom: 1px solid var(--border);
     }
 
-    .principle strong {
-      color: var(--text);
-    }
+    .instrument:last-child { border-bottom: none; }
 
-    /* Footer */
-    footer {
-      padding: 40px 0;
-      border-top: 1px solid var(--border);
-      text-align: center;
-      color: var(--text3);
-      font-size: 13px;
-    }
-
-    footer a {
-      color: var(--text2);
-      text-decoration: none;
-    }
-
-    footer a:hover {
+    .inst-num {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
       color: var(--accent);
+      width: 24px;
+      height: 24px;
+      min-width: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--accent-border);
+      border-radius: 5px;
+      background: var(--accent-subtle);
+      margin-top: 2px;
     }
 
-    @media (max-width: 600px) {
+    .inst-content h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .inst-content p { font-size: 13px; color: var(--text3); line-height: 1.6; }
+
+    /* ── How detection works ── */
+    .detection-header { margin-bottom: 36px; }
+
+    .detection-example {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .detection-claim {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .detection-claim-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text3);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .detection-claim p {
+      font-size: 14px;
+      color: var(--text2);
+      font-style: italic;
+      line-height: 1.6;
+    }
+
+    .detection-analysis {
+      padding: 20px 24px;
+    }
+
+    .detection-analysis-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--concept);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .detection-line {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.7;
+      margin-bottom: 8px;
+    }
+
+    .detection-line:last-child { margin-bottom: 0; }
+
+    .detection-concept {
+      display: inline;
+      color: var(--concept);
+      font-weight: 600;
+    }
+
+    .detection-gap {
+      display: inline;
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* ── Principles ── */
+    .principles-header { margin-bottom: 32px; }
+    .principles-list { display: flex; flex-direction: column; }
+    .principle { font-size: 14px; color: var(--text2); padding: 14px 0; border-bottom: 1px solid var(--border); line-height: 1.6; }
+    .principle:last-child { border-bottom: none; }
+    .principle strong { color: var(--text); font-weight: 600; }
+
+    /* ── Setup ── */
+    .steps-header { margin-bottom: 40px; }
+    .steps { display: flex; flex-direction: column; gap: 0; }
+    .step { display: flex; gap: 20px; align-items: flex-start; padding: 20px 0; border-bottom: 1px solid var(--border); }
+    .step:last-child { border-bottom: none; }
+    .step-num { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--accent); width: 28px; height: 28px; min-width: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--accent-border); border-radius: 6px; background: var(--accent-subtle); }
+    .step p { font-size: 14px; color: var(--text2); padding-top: 3px; line-height: 1.6; }
+
+    /* ── Manifesto ── */
+    .manifesto-header { margin-bottom: 36px; }
+    .manifesto-text { max-width: 600px; }
+    .manifesto-text p { font-size: 15px; color: var(--text2); margin-bottom: 20px; line-height: 1.8; }
+    .manifesto-text p:last-child { margin-bottom: 0; }
+    .manifesto-author { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+    .author-mark { width: 3px; height: 36px; background: var(--accent); border-radius: 2px; }
+    .author-info { font-size: 14px; }
+    .author-name { color: var(--text); font-weight: 600; }
+    .author-role { color: var(--text3); font-size: 13px; }
+
+    /* ── Donate ── */
+    .donate-header { margin-bottom: 28px; }
+    .donate-desc { color: var(--text2); font-size: 14px; margin-top: 8px; }
+    .btc-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 10px; padding: 20px 24px; display: flex; align-items: center; gap: 16px; max-width: 520px; }
+    .btc-icon { width: 36px; height: 36px; min-width: 36px; color: #f7931a; }
+    .btc-icon svg { width: 100%; height: 100%; }
+    .btc-info { min-width: 0; flex: 1; }
+    .btc-label { font-size: 12px; color: var(--text3); font-weight: 500; letter-spacing: 0.03em; margin-bottom: 4px; }
+    .btc-address { font-family: var(--mono); font-size: 12px; color: var(--text2); word-break: break-all; cursor: pointer; padding: 8px 10px; background: var(--bg3); border-radius: 6px; border: 1px solid var(--border); transition: all 0.15s ease; display: block; }
+    .btc-address:hover { border-color: var(--border2); color: var(--text); }
+    .btc-copied { color: var(--success); font-size: 11px; margin-top: 4px; opacity: 0; transition: opacity 0.2s; font-weight: 500; }
+    .btc-copied.show { opacity: 1; }
+
+    /* ── Footer ── */
+    footer { padding: 40px 0; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text3); }
+    footer a { color: var(--text3); text-decoration: none; transition: color 0.15s; }
+    footer a:hover { color: var(--text2); }
+    .footer-links { display: flex; gap: 20px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .hero { padding: 72px 0 60px; }
       h1 { font-size: 32px; }
-      .subtitle { font-size: 17px; }
-      .formula { font-size: 20px; }
+      .subtitle { font-size: 16px; }
+      h2 { font-size: 24px; }
+      .concept-row { grid-template-columns: 1fr; }
+      .concept-row-header { display: none; }
+      .concept-term-cell { padding-bottom: 0 !important; }
+      .concept-map-cell::before { content: 'Mapa: '; font-weight: 600; color: var(--text3); font-size: 11px; }
+      .concept-territory-cell::before { content: 'Territorio: '; font-weight: 600; color: var(--concept); font-size: 11px; }
+      .btc-card { flex-direction: column; align-items: flex-start; }
+      footer { flex-direction: column; gap: 12px; text-align: center; }
+      .cta-row { flex-direction: column; align-items: center; }
+      .btn { width: 100%; max-width: 240px; justify-content: center; }
+      .dna-grid, .fallacy-grid { grid-template-columns: 1fr !important; }
+      .incentive-grid { grid-template-columns: 1fr !important; }
     }
   </style>
 </head>
 <body>
   <div class="container">
+
+    <!-- Hero -->
     <section class="hero">
-      <div class="logo">P</div>
+      <div class="logo-mark">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="62" height="62" rx="14" stroke="#d4a574" stroke-width="1.5"/>
+          <path d="M20 44V20h4v20h12v4H20z" fill="#fafaf9"/>
+        </svg>
+      </div>
       <h1>Logic</h1>
-      <p class="subtitle">A reasoning system that expands your map, not confirms it. Operate the Concept Engine protocol powered by Claude AI.</p>
+      <p class="subtitle">Detecta mentiras, conceptos robados e incentivos perversos. Lo que queda despues de eliminar la distorsion es la verdad.</p>
+      <p class="tagline">El navegador es el mapa. El mapa no es el territorio. El territorio siempre gana.</p>
       <div class="cta-row">
-        <a href="https://github.com/joseandv-creator/logic-concept-engine" class="btn btn-primary">Get the Extension</a>
-        <a href="https://github.com/joseandv-creator/logic-concept-engine" class="btn btn-secondary">View Source</a>
+        <a href="https://github.com/joseandv-creator/logic-concept-engine" class="btn btn-primary">Obtener la extension</a>
+        <a href="https://github.com/joseandv-creator/logic-concept-engine" class="btn btn-secondary">Ver codigo fuente</a>
       </div>
     </section>
 
-    <section class="formula-section">
-      <div class="formula">C = S(v) x O(v) x R(v) | VB</div>
-      <p class="formula-desc">Every concept is decomposed into Subject, Object, and Relation fidelity, scored against a Sought Value. Any component at zero collapses the entire concept. Partial fidelity is more dangerous than zero.</p>
+    <!-- Core thesis -->
+    <section class="thesis section-border">
+      <div class="section-title">Tesis</div>
+      <h2>No puedes detectar mentiras<br>sin saber que son las cosas.</h2>
+      <p class="thesis-text">La mayoria de las palabras cargan definiciones heredadas que nunca fueron probadas. Cuando alguien usa "libertad" para describir coercion, o "justicia" para describir confiscacion, <strong>el espacio entre lo que la palabra significa y como la estan usando ES la mentira — visible, medible, nombrable.</strong></p>
     </section>
 
-    <section class="features">
-      <h2>What Logic does</h2>
-      <div class="features-grid">
-        <div class="feature">
-          <h3>Decompose</h3>
-          <p>Every input is broken into S, O, R, and VB. If the Sought Value is absent, the system halts until you declare it.</p>
+    <!-- Concept examples -->
+    <section class="section-border">
+      <div class="concepts-header">
+        <div class="section-title">Lenguaje cartografico</div>
+        <h2>Conceptos verificados</h2>
+        <p>Cada concepto es un detector. Cuando alguien usa un termino diferente de su territorio verificado, el espacio entre ambos es la distorsion — medible. Estos son algunos conceptos robados con frecuencia.</p>
+      </div>
+      <div class="concept-grid">
+        <div class="concept-row concept-row-header">
+          <div class="concept-term-cell">Concepto</div>
+          <div class="concept-map-cell">Mapa heredado</div>
+          <div class="concept-territory-cell">Territorio verificado</div>
         </div>
-        <div class="feature">
-          <h3>Score</h3>
-          <p>Each component gets a fidelity score from 0 to 1. Below 0.5 means the concept needs reconstruction before use.</p>
+        <div class="concept-row">
+          <div class="concept-term-cell">Libertad</div>
+          <div class="concept-map-cell">Ausencia de restricciones, poder hacer lo que quieras</div>
+          <div class="concept-territory-cell">Condicion bajo la cual el agente consciente puede actuar segun su propio juicio. No ausencia de toda restriccion — ausencia de coercion.</div>
         </div>
-        <div class="feature">
-          <h3>Eliminate</h3>
-          <p>Only what survives contact with territory in 3+ contexts is retained. Empty residue is declared NULL, not named.</p>
+        <div class="concept-row">
+          <div class="concept-term-cell">Justicia</div>
+          <div class="concept-map-cell">Lo que la sociedad acuerda que es justo</div>
+          <div class="concept-territory-cell">La aplicacion de derechos. Sin referencia al ser consciente que la requiere, el concepto colapsa — no se reduce.</div>
         </div>
-        <div class="feature">
-          <h3>Audit</h3>
-          <p>Traces where your concepts came from. Inherited language enters the map before the auditing instrument exists.</p>
+        <div class="concept-row">
+          <div class="concept-term-cell">Derecho</div>
+          <div class="concept-map-cell">Algo que el gobierno te otorga</div>
+          <div class="concept-territory-cell">Condicion del ser consciente: debe existir, debe actuar segun su juicio, debe conservar los productos de su accion.</div>
         </div>
-        <div class="feature">
-          <h3>Collective Intelligence</h3>
-          <p>Share discovered relations between system levels. When multiple users independently find the same connection, it becomes verified territory.</p>
+        <div class="concept-row">
+          <div class="concept-term-cell">Verdad</div>
+          <div class="concept-map-cell">Opinion consensuada, perspectiva personal</div>
+          <div class="concept-territory-cell">Correspondencia entre una proposicion y los hechos de la realidad. Fidelidad del mapa al territorio. Negarla es invocarla.</div>
         </div>
-        <div class="feature">
-          <h3>Declare Limits</h3>
-          <p>Unknown territory is marked, never filled with projection. "I don't know" at the map edge is more navigable than confident invention beyond it.</p>
+        <div class="concept-row">
+          <div class="concept-term-cell">Virtud</div>
+          <div class="concept-map-cell">Ser buena persona, cualidad moral abstracta</div>
+          <div class="concept-territory-cell">Practica sostenida de mantener el mapa preciso. Capital de expansion para el yo futuro. Se construye en momentos ordinarios.</div>
+        </div>
+        <div class="concept-row">
+          <div class="concept-term-cell">Valor</div>
+          <div class="concept-map-cell">Precio, preferencia subjetiva</div>
+          <div class="concept-territory-cell">Lo que el ser consciente actua para ganar o conservar. La vida es el valor fundamental — no uno entre otros.</div>
+        </div>
+      </div>
+      <p class="concept-count">10 conceptos verificados &middot; cada uno un detector de distorsion</p>
+    </section>
+
+    <!-- How detection works -->
+    <section class="section-border">
+      <div class="detection-header">
+        <div class="section-title">Deteccion</div>
+        <h2>Mentira &rarr; mecanismo &rarr; cadena causal &rarr; incentivo</h2>
+      </div>
+      <p style="color: var(--text2); font-size: 15px; line-height: 1.7; margin-bottom: 32px;">El sistema no solo detecta que algo es falso. Nombra el mecanismo usado para construir la mentira, traza la cadena causal que la sostiene, e identifica quien se beneficia de que la cadena permanezca oculta. La mentira es el sintoma. La cadena causal es el mecanismo. El incentivo es el motivo.</p>
+
+      <div class="detection-example">
+        <div class="detection-claim">
+          <div class="detection-claim-label">Contenido analizado</div>
+          <p>"Nuestro programa garantiza la libertad de todos los ciudadanos mediante regulaciones que aseguran igualdad de resultados."</p>
+        </div>
+        <div class="detection-analysis">
+          <div class="detection-analysis-label">1. Concepto robado</div>
+          <div class="detection-line"><span class="detection-concept">Libertad</span> — el contenido usa "libertad" como ausencia de desigualdad. Territorio verificado: ausencia de coercion. <span class="detection-gap">El programa describe lo opuesto a libertad usando la palabra libertad.</span></div>
+          <div class="detection-line" style="margin-top: 12px;"><span class="detection-analysis-label" style="margin-bottom: 4px; display: block;">2. Mecanismo</span><span class="detection-gap">Redefinicion</span> — el significado de "libertad" fue reemplazado sin aviso. <span class="detection-gap">Inversion</span> — "derecho" convertido de condicion de accion a reclamo sobre otros.</div>
+          <div class="detection-line" style="margin-top: 12px;"><span class="detection-analysis-label" style="margin-bottom: 4px; display: block;">3. Cadena causal</span>Regulacion &rarr; alguien decide que es "igual" &rarr; ese alguien necesita poder para redistribuir &rarr; el poder se concentra &rarr; la libertad original desaparece.</div>
+          <div class="detection-line" style="margin-top: 12px;"><span class="detection-analysis-label" style="margin-bottom: 4px; display: block;">4. Incentivo</span>Quien propone el programa obtiene el poder de decidir que es "justo". El beneficiario no es el ciudadano — es quien administra la redistribucion.</div>
         </div>
       </div>
     </section>
 
-    <section class="how">
-      <h2>Get started</h2>
+    <!-- Deception mechanisms -->
+    <section class="section-border">
+      <div class="instruments-header">
+        <div class="section-title">Mecanismos</div>
+        <h2>Como se construyen las mentiras</h2>
+        <p>Cuando el sistema detecta una mentira, nombra el mecanismo exacto. El mecanismo revela al arquitecto: redefinicion = engano institucional (toma anos). Sustitucion emocional = engano de bajo nivel (funciona rapido, se rompe rapido).</p>
+      </div>
+      <div class="instruments">
+        <div class="instrument">
+          <div class="inst-num" style="border-color: var(--concept-border); background: var(--concept-subtle); color: var(--concept);">R</div>
+          <div class="inst-content">
+            <h3>Redefinicion</h3>
+            <p>Robar un concepto — reemplazar el significado de una palabra sin que nadie lo note. El mecanismo maestro.</p>
+          </div>
+        </div>
+        <div class="instrument">
+          <div class="inst-num" style="border-color: var(--concept-border); background: var(--concept-subtle); color: var(--concept);">O</div>
+          <div class="inst-content">
+            <h3>Omision</h3>
+            <p>Esconder un eslabon causal — quitar el paso que cambiaria la conclusion.</p>
+          </div>
+        </div>
+        <div class="instrument">
+          <div class="inst-num" style="border-color: var(--concept-border); background: var(--concept-subtle); color: var(--concept);">F</div>
+          <div class="inst-content">
+            <h3>Falsa equivalencia</h3>
+            <p>Igualar cosas diferentes — "ambos lados" cuando uno tiene evidencia y el otro no.</p>
+          </div>
+        </div>
+        <div class="instrument">
+          <div class="inst-num" style="border-color: var(--concept-border); background: var(--concept-subtle); color: var(--concept);">E</div>
+          <div class="inst-content">
+            <h3>Sustitucion emocional</h3>
+            <p>Reemplazar argumento con sentimiento — indignacion, miedo, culpa en vez de evidencia.</p>
+          </div>
+        </div>
+        <div class="instrument">
+          <div class="inst-num" style="border-color: var(--concept-border); background: var(--concept-subtle); color: var(--concept);">A</div>
+          <div class="inst-content">
+            <h3>Apelacion a autoridad</h3>
+            <p>Reemplazar evidencia con estatus — "los expertos dicen" sin nombrar la evidencia.</p>
+          </div>
+        </div>
+        <div class="instrument">
+          <div class="inst-num" style="border-color: var(--concept-border); background: var(--concept-subtle); color: var(--concept);">C</div>
+          <div class="inst-content">
+            <h3>Cambio de alcance</h3>
+            <p>Responder una pregunta diferente a la que se hizo — desviar cambiando el tema.</p>
+          </div>
+        </div>
+        <div class="instrument">
+          <div class="inst-num" style="border-color: var(--concept-border); background: var(--concept-subtle); color: var(--concept);">D</div>
+          <div class="inst-content">
+            <h3>Falsa dicotomia</h3>
+            <p>Presentar dos opciones cuando existen mas — forzar una eleccion que beneficia al presentador.</p>
+          </div>
+        </div>
+        <div class="instrument">
+          <div class="inst-num" style="border-color: var(--concept-border); background: var(--concept-subtle); color: var(--concept);">I</div>
+          <div class="inst-content">
+            <h3>Inversion</h3>
+            <p>Presentar causa como efecto o efecto como causa — invierte la responsabilidad.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Logical fallacies -->
+    <section class="section-border">
+      <div class="instruments-header">
+        <div class="section-title">Falacias</div>
+        <h2>Gramatica del razonamiento defectuoso</h2>
+        <p>Las falacias logicas son errores estructurales en el razonamiento. Algunas se usan deliberadamente (strawman en politica, ad hominem en medios). Otras se heredan sin auditar. Cuando el sistema detecta una, determina si es accidental o estructural — si alguien se beneficia de que el error persista, es estructural.</p>
+      </div>
+      <div class="fallacy-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border-radius: 10px; overflow: hidden;">
+        <div style="background: var(--bg2); padding: 16px 20px;">
+          <div style="font-weight: 600; font-size: 13px; color: var(--purple); margin-bottom: 4px;">Ad hominem</div>
+          <div style="font-size: 12px; color: var(--text3); line-height: 1.5;">Atacar a la persona, no al argumento</div>
+        </div>
+        <div style="background: var(--bg2); padding: 16px 20px;">
+          <div style="font-weight: 600; font-size: 13px; color: var(--purple); margin-bottom: 4px;">Strawman</div>
+          <div style="font-size: 12px; color: var(--text3); line-height: 1.5;">Distorsionar la posicion y atacar la distorsion</div>
+        </div>
+        <div style="background: var(--bg2); padding: 16px 20px;">
+          <div style="font-weight: 600; font-size: 13px; color: var(--purple); margin-bottom: 4px;">Razonamiento circular</div>
+          <div style="font-size: 12px; color: var(--text3); line-height: 1.5;">La conclusion esta escondida en la premisa</div>
+        </div>
+        <div style="background: var(--bg2); padding: 16px 20px;">
+          <div style="font-weight: 600; font-size: 13px; color: var(--purple); margin-bottom: 4px;">Generalizacion apresurada</div>
+          <div style="font-size: 12px; color: var(--text3); line-height: 1.5;">Un caso = regla universal</div>
+        </div>
+        <div style="background: var(--bg2); padding: 16px 20px;">
+          <div style="font-weight: 600; font-size: 13px; color: var(--purple); margin-bottom: 4px;">Pendiente resbaladiza</div>
+          <div style="font-size: 12px; color: var(--text3); line-height: 1.5;">A lleva a Z sin probar B hasta Y</div>
+        </div>
+        <div style="background: var(--bg2); padding: 16px 20px;">
+          <div style="font-weight: 600; font-size: 13px; color: var(--purple); margin-bottom: 4px;">Post hoc</div>
+          <div style="font-size: 12px; color: var(--text3); line-height: 1.5;">Despues de = a causa de</div>
+        </div>
+        <div style="background: var(--bg2); padding: 16px 20px;">
+          <div style="font-weight: 600; font-size: 13px; color: var(--purple); margin-bottom: 4px;">Apelacion a tradicion</div>
+          <div style="font-size: 12px; color: var(--text3); line-height: 1.5;">Es viejo = es correcto</div>
+        </div>
+        <div style="background: var(--bg2); padding: 16px 20px;">
+          <div style="font-weight: 600; font-size: 13px; color: var(--purple); margin-bottom: 4px;">Tu quoque</div>
+          <div style="font-size: 12px; color: var(--text3); line-height: 1.5;">Tu tambien lo haces = no esta mal</div>
+        </div>
+      </div>
+      <p style="text-align: center; margin-top: 20px; font-size: 13px; color: var(--text3);">12 falacias en el toolkit &middot; accidental o estructural — esa es la pregunta</p>
+    </section>
+
+    <!-- DNA of Language -->
+    <section class="section-border">
+      <div class="concepts-header">
+        <div class="section-title">Estructura</div>
+        <h2>ADN del lenguaje</h2>
+        <p>El sistema opera sobre dos hebras distintas y complementarias. Juntas hacen las mentiras visibles y la verdad navegable.</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div class="dna-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border);">
+          <div style="background: var(--bg); padding: 24px;">
+            <div style="font-family: var(--mono); font-size: 11px; color: var(--concept); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px;">Hebra 1: Conceptos</div>
+            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Que son las cosas</h3>
+            <p style="font-size: 13px; color: var(--text2); line-height: 1.7;">Definiciones precisas verificadas por eliminacion. Cada concepto es un detector. Cuando alguien usa la palabra diferente de su territorio, el espacio ES la mentira.</p>
+            <p style="font-size: 12px; color: var(--text3); margin-top: 12px; line-height: 1.6;">Epistemologia, etica, politica, ontologia — cada area de la filosofia aporta detectores.</p>
+          </div>
+          <div style="background: var(--bg); padding: 24px;">
+            <div style="font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px;">Hebra 2: Relaciones causales</div>
+            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Como se conectan las cosas</h3>
+            <p style="font-size: 13px; color: var(--text2); line-height: 1.7;">Cadenas de inferencia, enlaces causa-efecto, dependencias estructurales. Si X entonces Y, y Y significa Z para ti. Revelan consecuencias invisibles sin la cadena.</p>
+            <p style="font-size: 12px; color: var(--text3); margin-top: 12px; line-height: 1.6;">Usuarios independientes descubriendo la misma relacion = convergencia = territorio verificado.</p>
+          </div>
+        </div>
+      </div>
+      <p style="text-align: center; margin-top: 20px; font-size: 14px; color: var(--text2);">Conceptos dicen <strong style="color: var(--concept);">QUE</strong> se esta distorsionando. Relaciones dicen <strong style="color: var(--accent);">ADONDE</strong> lleva la distorsion y <strong style="color: var(--accent);">POR QUE</strong> existe.</p>
+    </section>
+
+    <!-- Incentive detection -->
+    <section class="section-border">
+      <div class="instruments-header">
+        <div class="section-title">Incentivos</div>
+        <h2>Sigue el dinero, la atencion, el poder</h2>
+        <p>Cada mentira tiene una estructura de incentivos detras. El sistema traza automaticamente quien se beneficia — tanto de la distorsion como de que la cadena causal permanezca oculta.</p>
+      </div>
+      <div class="incentive-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border-radius: 10px; overflow: hidden;">
+        <div style="background: var(--bg2); padding: 20px 24px;">
+          <div style="font-weight: 600; font-size: 14px; color: var(--accent); margin-bottom: 8px;">Incentivos humanos</div>
+          <p style="font-size: 12px; color: var(--text3); line-height: 1.6; margin-bottom: 8px;">Por que las personas hacen lo que hacen</p>
+          <div style="font-size: 12px; color: var(--text2); line-height: 1.7;">Preferencia revelada > preferencia declarada. Aversion a la perdida 2x. Problema de agencia. Asimetria de informacion = poder. Preferencia temporal. Falacia narrativa.</div>
+        </div>
+        <div style="background: var(--bg2); padding: 20px 24px;">
+          <div style="font-weight: 600; font-size: 14px; color: var(--accent); margin-bottom: 8px;">Incentivos economicos</div>
+          <p style="font-size: 12px; color: var(--text3); line-height: 1.6; margin-bottom: 8px;">La estructura economica revela lo que el discurso esconde</p>
+          <div style="font-size: 12px; color: var(--text2); line-height: 1.7;">Quien paga? Quien gana? Beneficios concentrados + costos dispersos. Captura regulatoria. Riesgo moral. Externalidades. "Gratis" = tu eres el producto.</div>
+        </div>
+        <div style="background: var(--bg2); padding: 20px 24px;">
+          <div style="font-weight: 600; font-size: 14px; color: var(--accent); margin-bottom: 8px;">Cadenas causales ocultas</div>
+          <p style="font-size: 12px; color: var(--text3); line-height: 1.6; margin-bottom: 8px;">La mayoria de las mentiras esconden un eslabon causal</p>
+          <div style="font-size: 12px; color: var(--text2); line-height: 1.7;">Efectos siguen causas con retraso. Efectos de segundo orden. Loops de retroalimentacion. Transiciones de umbral. Eslabones perdidos, falsos e invertidos = los tres mecanismos de engano causal.</div>
+        </div>
+        <div style="background: var(--bg2); padding: 20px 24px;">
+          <div style="font-weight: 600; font-size: 14px; color: var(--accent); margin-bottom: 8px;">Reglas del territorio</div>
+          <p style="font-size: 12px; color: var(--text3); line-height: 1.6; margin-bottom: 8px;">Cuando un reclamo viola estas, esta mal sin importar quien lo diga</p>
+          <div style="font-size: 12px; color: var(--text2); line-height: 1.7;">Nada de la nada. El orden cuesta energia. La entropia aumenta por defecto. Los extremos regresan a la media. Informacion tiene costo. Emergencia.</div>
+        </div>
+      </div>
+      <p style="text-align: center; margin-top: 20px; font-size: 13px; color: var(--text3);">6 categorias en el toolkit de deteccion &middot; activadas automaticamente cuando se detecta mentira</p>
+    </section>
+
+    <!-- 5 Instruments -->
+    <section class="section-border">
+      <div class="instruments-header">
+        <div class="section-title">Instrumentos</div>
+        <h2>Cinco lentes por respuesta</h2>
+        <p>Cada respuesta usa al menos 3 de estos instrumentos para identificar mentiras, incentivos perversos, y conceptos robados. El objetivo: que puedas hacer algo diferente despues de leer.</p>
+      </div>
+      <div class="instruments">
+        <div class="instrument">
+          <div class="inst-num">1</div>
+          <div class="inst-content">
+            <h3>Inferencias</h3>
+            <p>Muestra lo que sigue. Si X entonces Y, y Y significa Z para ti. Traza la cadena que no puedes trazar solo.</p>
+          </div>
+        </div>
+        <div class="instrument">
+          <div class="inst-num">2</div>
+          <div class="inst-content">
+            <h3>Verdad filtrada por valor</h3>
+            <p>Importa para lo que buscas? No = cortalo. Si = dilo con fuerza. Una verdad irrelevante para tu VB es ruido.</p>
+          </div>
+        </div>
+        <div class="instrument">
+          <div class="inst-num">3</div>
+          <div class="inst-content">
+            <h3>Lente etico</h3>
+            <p>Quien se beneficia, quien paga, cual es el VB real detras de la accion. Valores declarados vs valores actuados = el diagnostico.</p>
+          </div>
+        </div>
+        <div class="instrument">
+          <div class="inst-num">4</div>
+          <div class="inst-content">
+            <h3>Conceptos robados e incentivos perversos</h3>
+            <p>Quien gana si crees esto? Cuando alguien usa una palabra diferente de su territorio verificado, el espacio ES la mentira. Sigue el dinero, la atencion, el poder.</p>
+          </div>
+        </div>
+        <div class="instrument">
+          <div class="inst-num">5</div>
+          <div class="inst-content">
+            <h3>Incertidumbre navegable</h3>
+            <p>Donde termina el mapa? Dilo. Puedes navegar la incertidumbre; no puedes navegar la certeza falsa.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Principles -->
+    <section class="section-border">
+      <div class="principles-header">
+        <div class="section-title">Axiomas</div>
+        <h2>Principios del motor</h2>
+      </div>
+      <div class="principles-list">
+        <div class="principle"><strong>El navegador es mapa + valoracion + accion</strong> — unidad inseparable de consciencia</div>
+        <div class="principle"><strong>El mapa no es el territorio</strong> — fidelidad parcial es mas peligrosa que cero</div>
+        <div class="principle"><strong>El territorio siempre gana</strong> — cuando mapa y territorio divergen, actualiza el mapa</div>
+        <div class="principle"><strong>La distorsion se acumula por defecto</strong> — revertirla requiere energia activa</div>
+        <div class="principle"><strong>Comprension = eliminacion</strong> — lo que sobrevive, nombralo. Lo que no, descartalo</div>
+        <div class="principle"><strong>Los conceptos son detectores</strong> — el espacio entre uso y territorio verificado = la mentira, medible</div>
+        <div class="principle"><strong>La verdad es lo que queda</strong> — no se extrae, se llega a ella eliminando la distorsion</div>
+      </div>
+    </section>
+
+    <!-- Setup -->
+    <section class="section-border">
+      <div class="steps-header">
+        <div class="section-title">Inicio</div>
+        <h2>Como empezar</h2>
+      </div>
       <div class="steps">
         <div class="step">
           <div class="step-num">1</div>
-          <p>Download the extension from GitHub and load it in Chrome (Developer mode > Load unpacked)</p>
+          <p>Descarga la extension de GitHub y cargala en Chrome via modo desarrollador.</p>
         </div>
         <div class="step">
           <div class="step-num">2</div>
-          <p>Enter your Anthropic API key in Options. You bring your own key — Logic stores nothing on external servers.</p>
+          <p>Ingresa tu API key en Opciones. Tu traes tu propia llave — nada se almacena externamente.</p>
         </div>
         <div class="step">
           <div class="step-num">3</div>
-          <p>Click the Logic icon to open the side panel. Start thinking. The system will decompose, score, and audit your concepts.</p>
+          <p>Abre el panel lateral y empieza a pensar. El sistema traza inferencias, detecta distorsion, y marca los limites del mapa.</p>
         </div>
         <div class="step">
           <div class="step-num">4</div>
-          <p>Analyze any web page through the Concept Engine lens. Logic detects who publishes and why, not just what.</p>
+          <p>Analiza cualquier pagina web. Logic identifica al productor, filtra por tu VB, detecta distorsion usando tus conceptos verificados.</p>
         </div>
       </div>
     </section>
 
-    <section class="principles">
-      <h2>Core principles</h2>
-      <div class="principles-list">
-        <div class="principle"><strong>The navigator is the map</strong> — not: the navigator has a map</div>
-        <div class="principle"><strong>The map is not the territory</strong> — partial fidelity is more dangerous than zero</div>
-        <div class="principle"><strong>The territory always wins</strong> — when map and territory diverge, update the map</div>
-        <div class="principle"><strong>Distortion accumulates by default</strong> — reversal requires active energy</div>
-        <div class="principle"><strong>Comprehension = elimination</strong> — what survives testing, name it. What doesn't, discard it.</div>
+    <!-- Manifesto -->
+    <section class="section-border">
+      <div class="manifesto-header">
+        <div class="section-title">Declaracion</div>
+        <h2>Por que existe</h2>
+      </div>
+      <div class="manifesto-text">
+        <p>La mayoria de las herramientas de hoy optimizan para engagement, no para verdad. Estan disenadas para mantenerte dentro del mapa que ya tienes — confirmando lo que crees, premiando lo que repites, vendiendo lo que temes.</p>
+        <p>Logic existe para encontrar el mal donde quiera que se encuentre. Un sistema que detecta mentiras, nombra el mecanismo exacto usado para construirlas, traza la cadena causal que las sostiene, e identifica quien se beneficia de que permanezcan ocultas. Conceptos robados, falacias estructurales, incentivos perversos, cadenas causales escondidas — todo visible, todo nombrable, todo medible.</p>
+        <p>El sistema opera sobre el ADN del lenguaje: conceptos verificados que saben que son las cosas, y relaciones causales que revelan como se conectan. Juntos hacen las mentiras visibles y la verdad navegable. La verdad no se extrae — es lo que queda despues de eliminar la distorsion.</p>
+        <p>Esto no es un producto. No hay algoritmo decidiendo que debes pensar. No se recolectan datos. No hay metricas de engagement. Tu API key va directo de tu navegador al proveedor.</p>
+        <p>El codigo es abierto porque verdad que no puede ser verificada no es verdad — es autoridad. Cualquiera puede leer el system prompt, auditar la logica, y ver exactamente como funciona cada detector.</p>
+        <p>La capa de inteligencia colectiva existe para que cuando multiples navegadores independientes descubran la misma relacion, esa senal se preserve. No porque una mayoria voto, sino porque llegaron al mismo territorio por caminos diferentes.</p>
+      </div>
+      <div class="manifesto-author">
+        <div class="author-mark"></div>
+        <div class="author-info">
+          <div class="author-name">J.A. Deschamps V.</div>
+          <div class="author-role">Creador del Concept Engine Protocol</div>
+        </div>
       </div>
     </section>
 
+    <!-- Donate -->
+    <section class="section-border">
+      <div class="donate-header">
+        <div class="section-title">Soporte</div>
+        <h2>Apoya Logic</h2>
+        <p class="donate-desc">Logic es gratuito y open source. Si expandio tu mapa, puedes apoyar su desarrollo.</p>
+      </div>
+      <div class="btc-card">
+        <div class="btc-icon">
+          <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="18" cy="18" r="17" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M15 10v2m0 12v2m4-16v2m0 12v2" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M13 12h6.5a3 3 0 0 1 0 6H13v-6zm0 6h7a3 3 0 0 1 0 6h-7v-6z" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="btc-info">
+          <div class="btc-label">Bitcoin (BTC)</div>
+          <div class="btc-address" id="btcAddress" onclick="copyBtc()">YOUR_BTC_WALLET_ADDRESS</div>
+          <div class="btc-copied" id="btcCopied">Copiado</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
     <footer>
-      <p>Logic is free and open source. <a href="https://github.com/joseandv-creator/logic-concept-engine">GitHub</a> &middot; <a href="glossary.html">Verified Glossary</a> &middot; <a href="privacy-policy.html">Privacy Policy</a></p>
-      <p style="margin-top: 8px;">Built by Jose. The territory decides.</p>
+      <span>AGPL-3.0 &middot; J.A. Deschamps V.</span>
+      <div class="footer-links">
+        <a href="https://github.com/joseandv-creator/logic-concept-engine">GitHub</a>
+        <a href="glossary.html">Glosario</a>
+        <a href="privacy-policy.html">Privacidad</a>
+      </div>
     </footer>
+
   </div>
+  <script>
+    function copyBtc() {
+      var addr = document.getElementById('btcAddress').textContent;
+      navigator.clipboard.writeText(addr).then(function() {
+        var el = document.getElementById('btcCopied');
+        el.classList.add('show');
+        setTimeout(function() { el.classList.remove('show'); }, 2000);
+      });
+    }
+  </script>
 </body>
 </html>

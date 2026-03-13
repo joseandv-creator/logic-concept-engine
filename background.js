@@ -61,6 +61,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     deleteCorrection(message.index).then(sendResponse);
     return true;
   }
+  if (message.type === 'saveConcept') {
+    saveConcept(message.concept).then(sendResponse);
+    return true;
+  }
+  if (message.type === 'getConcepts') {
+    getConcepts().then(sendResponse);
+    return true;
+  }
+  if (message.type === 'deleteConcept') {
+    deleteConcept(message.index).then(sendResponse);
+    return true;
+  }
   if (message.type === 'exportInsights') {
     exportInsightsToFile().then(sendResponse);
     return true;
@@ -139,6 +151,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     runAutoApproval().then(sendResponse);
     return true;
   }
+  if (message.type === 'seedConcepts') {
+    seedTCOLConcepts().then(sendResponse);
+    return true;
+  }
 });
 
 async function handleChat(messages, modelOverride) {
@@ -146,8 +162,18 @@ async function handleChat(messages, modelOverride) {
   const model = modelOverride || providerConfig.model ||
     (activeProvider === 'anthropic' ? 'claude-opus-4-20250514' : 'gpt-4o');
 
-  // Build system prompt with corrections
+  // Build system prompt with corrections and concepts
   let systemPrompt = SYSTEM_PROMPT;
+
+  // Inject verified concepts (cartographic landmarks)
+  const { concepts = [] } = await chrome.storage.local.get(['concepts']);
+  if (concepts.length > 0) {
+    const conceptLines = concepts.map(c =>
+      `- **${c.term}**: ${c.territory} (C=${c.c})`
+    ).join('\n');
+    systemPrompt += `\n\n---\n\n## CONCEPTOS VERIFICADOS (landmarks del mapa del usuario)\n\nEstos conceptos han sido verificados por eliminacion. Usalos como referencia cuando aparezcan en la conversacion:\n\n${conceptLines}`;
+  }
+
   const { corrections = [] } = await chrome.storage.local.get(['corrections']);
   if (corrections.length > 0) {
     const correctionLines = corrections.map((c, i) => `${i + 1}. ${c.text}`).join('\n');
@@ -350,8 +376,137 @@ async function exportInsightsToFile() {
   }
 }
 
+async function saveConcept(concept) {
+  const validation = validateConcept(concept);
+  if (!validation.valid) {
+    console.warn('Concept rejected:', validation.errors);
+    return { success: false, error: validation.errors.join(', ') };
+  }
+
+  const { concepts = [] } = await chrome.storage.local.get(['concepts']);
+  const clean = validation.cleaned;
+  clean.date = new Date().toISOString();
+
+  // Replace if same term exists (update landmark)
+  const existingIdx = concepts.findIndex(c => c.term === clean.term);
+  if (existingIdx >= 0) {
+    concepts[existingIdx] = clean;
+  } else {
+    concepts.push(clean);
+  }
+
+  await chrome.storage.local.set({ concepts });
+  return { success: true, count: concepts.length };
+}
+
+async function getConcepts() {
+  const { concepts = [] } = await chrome.storage.local.get(['concepts']);
+  return { concepts };
+}
+
+async function deleteConcept(index) {
+  const { concepts = [] } = await chrome.storage.local.get(['concepts']);
+  if (index >= 0 && index < concepts.length) {
+    concepts.splice(index, 1);
+    await chrome.storage.local.set({ concepts });
+  }
+  return { success: true, concepts };
+}
+
 async function validateApiKey(apiKey, providerName) {
   const name = providerName || 'anthropic';
   const provider = createProvider(name, { key: apiKey });
   return provider.validateKey(apiKey);
+}
+
+async function seedTCOLConcepts() {
+  const now = new Date().toISOString();
+  const tcol = [
+    {
+      term: "libertad",
+      map: "Ausencia de restricciones, poder hacer lo que quieras",
+      territory: "Condicion bajo la cual el agente consciente puede actuar segun su propio juicio. No ausencia de toda restriccion — ausencia de coercion. El drift de 'ausencia de coercion' a 'ausencia de toda restriccion' reemplaza R y destruye el concepto.",
+      tested: ["politica: leyes que 'dan libertad' restringiendo a otros", "economia: libertad financiera vs libertad de actuar", "relaciones: confundir libertad con ausencia de compromiso"],
+      c: 0.85, date: now
+    },
+    {
+      term: "justicia",
+      map: "Lo que la sociedad acuerda que es justo, o igualdad de resultados",
+      territory: "La aplicacion de derechos. Un concepto de justicia donde el sujeto ha sido borrado (S(v)->0) — justicia sin referencia al ser consciente que la requiere — no es un concepto disminuido, es su colapso.",
+      tested: ["sistema legal: justicia procesal vs sustantiva", "politica redistributiva: justicia como igualar vs como proteger", "filosofia: relativismo — justicia es lo que la sociedad decide"],
+      c: 0.8, date: now
+    },
+    {
+      term: "derecho",
+      map: "Algo que el gobierno te otorga, un beneficio social",
+      territory: "No es un regalo del gobierno. Vida = el ser consciente debe existir para funcionar. Libertad = debe actuar segun su juicio. Propiedad = debe conservar los productos de su accion. El drift de 'libertad de accion' a 'reclamo sobre la produccion de otros' reemplaza R completamente.",
+      tested: ["debate politico: derechos positivos vs negativos", "economia: derecho a vivienda vs derecho a no ser despojado", "historia: evolucion del concepto de derechos humanos"],
+      c: 0.85, date: now
+    },
+    {
+      term: "verdad",
+      map: "Opinion consensuada, perspectiva personal, o lo que funciona",
+      territory: "Correspondencia entre una proposicion y los hechos de la realidad. Relacion (R) entre la identificacion del sujeto (S) y el objeto como realmente es (O). Fidelidad del mapa al territorio. Negarla es invocarla.",
+      tested: ["epistemologia: relativismo 'mi verdad'", "medios: narrativa vs hechos", "ciencia: verdad provisional vs verdad como correspondencia"],
+      c: 0.9, date: now
+    },
+    {
+      term: "virtud",
+      map: "Ser buena persona, cualidad moral abstracta",
+      territory: "Practica sostenida de mantener el mapa preciso — disposicion continua a mantener al sujeto honesto. Capital de expansion para el yo futuro. Se construye en momentos ordinarios, no dramaticos. Sin estandar, virtud no tiene significado.",
+      tested: ["caracter personal: patron sostenido, no acto aislado", "economia: disciplina financiera como virtud practica", "relaciones: integridad como consistencia mapa-accion-valoracion"],
+      c: 0.8, date: now
+    },
+    {
+      term: "valor",
+      map: "Precio, importancia subjetiva, preferencia personal",
+      territory: "Surge de que la existencia del ser consciente no esta garantizada. Es lo que el ser consciente actua para ganar o conservar. La vida es el valor fundamental — no uno entre otros. Sin valor no hay criterio para eliminar, y sin eliminacion no hay concepto.",
+      tested: ["economia: valor vs precio", "etica: valores declarados vs valores actuados", "decisiones: lo que dices que valoras vs como actuas"],
+      c: 0.85, date: now
+    },
+    {
+      term: "responsabilidad",
+      map: "Obligacion impuesta, carga que otros te asignan",
+      territory: "Bisagra entre la cadena interna (valoracion y accion, dentro del sujeto) y la cadena social (deber, virtud, justicia, derechos). Si los productos de la accion pueden ser confiscados, la accion se separa de sus consecuencias y la responsabilidad se rompe.",
+      tested: ["trabajo: responsabilidad sin autoridad = estructura rota", "crianza: consecuencias naturales vs castigo", "politica: responsabilidad fiscal sin skin in the game"],
+      c: 0.8, date: now
+    },
+    {
+      term: "deber",
+      map: "Comando externo, lo que otros esperan de ti",
+      territory: "Conexion entre lo que eres (naturaleza) y lo que debes hacer (accion). No porque alguien te lo diga, sino porque no cumplir las condiciones de tu sustento es fallar en funcionar como el tipo de ser que eres.",
+      tested: ["salud: cuidar el cuerpo como condicion de funcionamiento", "finanzas: generar ingreso como condicion de autonomia", "relaciones: deber hacia otros derivado de estructura, no de mandato"],
+      c: 0.75, date: now
+    },
+    {
+      term: "concepto",
+      map: "Idea abstracta, palabra con significado, categoria mental",
+      territory: "Producto triadico de sujeto, objeto y relacion — multiplicativo (cualquier componente = 0 produce colapso total). Compresion estable producida por eliminacion guiada por valor. No se acumula — se talla. El significado es lo que queda despues de eliminar lo que no sobrevive.",
+      tested: ["linguistica: Saussure — significado se talla, no se acumula", "cognicion infantil: primer 'caliente' = concepto por eliminacion", "politica: conceptos heredados sin auditar = distorsion invisible"],
+      c: 0.9, date: now
+    },
+    {
+      term: "mapa",
+      map: "Representacion neutral del mundo, modelo objetivo",
+      territory: "El mapa que el sujeto dibuja no es una representacion del sujeto — ES el sujeto. Modificar el mapa es modificar a la persona. El sujeto que sabe mas no es el mismo sujeto con informacion adicional — es un sujeto diferente.",
+      tested: ["educacion: aprender cambia quien eres, no solo que sabes", "terapia: cambiar narrativa = cambiar persona", "politica: adoptar categorias sin auditar = heredar distorsion"],
+      c: 0.85, date: now
+    }
+  ];
+
+  const { concepts = [] } = await chrome.storage.local.get(['concepts']);
+
+  let added = 0;
+  for (const seed of tcol) {
+    const existingIdx = concepts.findIndex(c => c.term === seed.term);
+    if (existingIdx >= 0) {
+      concepts[existingIdx] = seed;
+    } else {
+      concepts.push(seed);
+      added++;
+    }
+  }
+
+  await chrome.storage.local.set({ concepts });
+  return { success: true, total: concepts.length, added };
 }
